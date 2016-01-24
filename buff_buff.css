@@ -10,9 +10,13 @@ body {
 canvas {
     display: block;
     margin: 0px auto;
-    position: absolute;
-    left: 0px;
-    top: 0px;
+    //position: absolute;
+    //left: 0px;
+    //top: 0px;
+}
+
+#board {
+    display: None;
 }
 
 #instructions {
