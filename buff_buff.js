@@ -284,10 +284,3 @@ function GameStart(){
     };
     this.move = function(){}
 }
-
-
-function _remove(x){
-    universe.splice(universe.indexOf(x), 1);
-}
-
-
