@@ -1,22 +1,22 @@
 @font-face{
-	font-family: pixelfont;
-	src: url('slkscr.ttf') format('truetype');
+    font-family: pixelfont;
+    src: url('slkscr.ttf') format('truetype');
 }
 
 body {
-	background-color: black;
+    background-color: black;
 }
 
 canvas {
-	display: block;
-	margin: 0px auto;
+    display: block;
+    margin: 0px auto;
     position: absolute;
     left: 0px;
     top: 0px;
 }
 
 #instructions {
-	text-align:center;
-	color:white;
-	font-family: pixelfont;
+    text-align:center;
+    color:white;
+    font-family: pixelfont;
 }
