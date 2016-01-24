@@ -143,7 +143,7 @@ function Player(){
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
         this.size = this.size*dsize;
         var dangle = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
-        this.angle += dangle * this.angle_delta / Math.max(1.0, Math.sqrt(this.size)) * 2.0 * Math.PI;
+        this.angle += dangle * this.angle_delta / Math.max(2.0, Math.sqrt(this.size)) * 2.0 * Math.PI;
         var vx = Math.cos(this.angle) * this.v; var vy = Math.sin(this.angle) * this.v;
         var new_x = this.x + vx;
         var new_y = this.y + vy;
@@ -151,7 +151,7 @@ function Player(){
             this.alive = false;
             return;
         }
-        if (board.time % 100 < (5)) {
+        if (board.time % 100 >= 80 ) {
             this.is_transparent = true;
         } else {
             this.is_transparent = false;
@@ -167,9 +167,9 @@ function Player(){
     };
     this.is_collided = function(new_x,new_y) {
         var collision = false;
-        var dist = 1.01*this.size;
+        var dist = 1.1*this.size;
         for (t=-1; t<=1; t+=1){
-            var beta = this.angle + t * Math.PI/2 * 0.9;
+            var beta = this.angle + t * Math.PI/2 * 0.8;
             var pixel_ok = board.is_empty(new_x + Math.cos(beta)*dist, new_y + Math.sin(beta)*dist);
             if (!pixel_ok) {
                 collision = true;
