@@ -241,8 +241,8 @@ function Board() {
         var iy = Math.max(0, Math.min(this.h, y+this.h/2));
         var id = ctx.getImageData(ix,iy,1,1);
         var r = id.data[0]; // detect collisions on red channel
-        ctx.fillStyle = "rgb(0,255,0)";
-        ctx.fillRect(ix,iy,1,1);
+        //ctx.fillStyle = "rgb(0,255,0)";
+        //ctx.fillRect(ix,iy,1,1);
         if (r > 0) {
             return false;
         }
@@ -324,8 +324,8 @@ function Info(){
         c.fillStyle = player.alive ? "white" : "grey";
         c.font = "16px pixelfont";
         c.textAlign = "left";
-        c.fillText("Score: " + player.score, 0, 16);
-        c.fillText("Time: " + board.time, 100, 16);
+        c.fillText("Score: " + player.score, cw2-120, 16);
+        c.fillText("Time: " + board.time, cw2+100, 16);
     };
     this.move = function(){}
 }
@@ -339,7 +339,7 @@ function GameOver(){
         c.font = "50px pixelfont";
         c.fillText("GAME OVER", cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("Press ENTER to play again", cw2, ch2+130)
+        c.fillText("press space to play again", cw2, ch2+130)
     };
     this.move = function(){};
 }
@@ -351,7 +351,7 @@ function GamePause(){
         c.font = "50px pixelfont";
         c.fillText("PAUSE", cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("press space/enter to continue", cw2, ch2+130)
+        c.fillText("press space to continue", cw2, ch2+130)
         c.fillText("press esc to restart", cw2, ch2+160)
     };
     this.move = function(){};
@@ -362,7 +362,8 @@ function GameReady(){
         c.textAlign = "center";
         c.fillStyle = "white";
         c.font = "30px pixelfont";
-        c.fillText("press space/enter to start", cw2, ch2)
+        c.fillText("ready?", cw2, ch2-30)
+        c.fillText("press space to start", cw2, ch2)
     };
     this.move = function(){};
 }
@@ -374,7 +375,7 @@ function GameStart(){
         c.font = "100px pixelfont";
         c.fillText("BUFF BUFF", cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("press space/enter to play", cw2, ch2+130)
+        c.fillText("press space to play", cw2, ch2+130)
     };
     this.move = function(){}
 }
