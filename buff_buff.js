@@ -14,6 +14,7 @@ window.addEventListener("keyup", on_keyup, true);
 
 function game_init() {
     is_game_started = false;
+    is_game_ready = false;
     is_game_over = false;
     is_game_paused = false;
 
@@ -23,20 +24,27 @@ function game_init() {
     info = new Info();
     powerups = new PowerUps();
     gamestart = new GameStart();
+    gameready = new GameReady();
     gameover = new GameOver();
     gamepause = new GamePause();
-    universe = [gamestart, background];
 
+    universe = [gamestart, background];
 }
 
 function start_game() {
-    if (!is_game_started) {
+    if (is_game_over) {
+        game_init();
+    }
+    if (!is_game_ready) {
+        is_game_ready = true;
+        universe = [gameready, player, powerups, board, info, background];
+        return;
+    }
+    if (!is_game_started && is_game_ready) {
         is_game_started = true;
         universe = [player, powerups, board, info, background];
+        return
     }
-}
-
-function pause_game() {
     if (is_game_started) {
         if (!is_game_paused) {
             is_game_paused = true;
@@ -53,7 +61,7 @@ function escape_game() {
     if (is_game_paused) {
         game_init();
     } else {
-        pause_game();
+        start_game();
     }
 }
 
@@ -76,12 +84,9 @@ function on_keydown(e) {
     } else if (87 == key) { // w
         player.down_pressed = true;
     } else if (13 == key) { // enter
-        if (is_game_over) {
-            game_init();
-        }
         start_game();
     } else if (32 == key) { // space
-        pause_game();
+        start_game();
     } else if (27 == key) { // esc
         escape_game();
     } else {
@@ -107,7 +112,9 @@ function run() {
     setInterval(function() {
         for (var i = universe.length-1; i >= 0; i--) {
             object = universe[i];
-            object.move();
+            if (is_game_started && !is_game_over && !is_game_paused) {
+                object.move();
+            }
             object.draw();
         }
         check_game_over();
@@ -123,7 +130,7 @@ function Player(){
     this.color = "red";
     this.alive = true;
     this.score = 0;
-    this.size = 4;
+    this.size = 2;
     this.angle_delta = 1.0/32;
     this.angle = 0.0 * Math.PI;
     this.v = 1;
@@ -139,8 +146,7 @@ function Player(){
         c.fill();
     }
     this.move = function(){
-
-        if (!this.alive || is_game_paused) {
+        if (!this.alive) {
             return;
         }
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
@@ -184,8 +190,8 @@ function Player(){
 
 function Board() {
     this.space_canvas = document.getElementById("board");
-    this.w = 600;
-    this.h = 300;
+    this.w = 400;
+    this.h = 400;
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
     this.x = - this.w/2;
@@ -200,7 +206,6 @@ function Board() {
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
     };
-
     this.draw = function() {
         var id = this.space_ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(id,this.x+cw2,this.y+ch2);
@@ -211,9 +216,6 @@ function Board() {
         c.stroke();
     };
     this.move = function(){
-        if (is_game_over || is_game_paused) {
-            return;
-        }
         this.time += 1;
         this.add_border();
     };
@@ -349,12 +351,21 @@ function GamePause(){
         c.font = "50px pixelfont";
         c.fillText("PAUSE", cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("press SPACE to continue", cw2, ch2+130)
-        c.fillText("press ESC to restart", cw2, ch2+160)
+        c.fillText("press space/enter to continue", cw2, ch2+130)
+        c.fillText("press esc to restart", cw2, ch2+160)
     };
     this.move = function(){};
 }
 
+function GameReady(){
+    this.draw = function(){
+        c.textAlign = "center";
+        c.fillStyle = "white";
+        c.font = "30px pixelfont";
+        c.fillText("press space/enter to start", cw2, ch2)
+    };
+    this.move = function(){};
+}
 
 function GameStart(){
     this.draw = function(){
@@ -363,7 +374,7 @@ function GameStart(){
         c.font = "100px pixelfont";
         c.fillText("BUFF BUFF", cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("press ENTER to play", cw2, ch2+130)
+        c.fillText("press space/enter to play", cw2, ch2+130)
     };
     this.move = function(){}
 }
