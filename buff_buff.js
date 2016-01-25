@@ -127,8 +127,8 @@ function Player(){
     this.angle_delta = 1.0/32;
     this.angle = 0.0 * Math.PI;
     this.v = 1;
-    this.x = 0*(Math.random()-0.5)*board.w;
-    this.y = 0*(Math.random()-0.5)*board.h;
+    this.x = (Math.random()-0.5)*(board.w-32)+16;
+    this.y = (Math.random()-0.5)*(board.h-32)+16;
     this.prev_x = this.x;
     this.prev_y = this.y;
     this.is_transparent = false;
@@ -168,7 +168,7 @@ function Player(){
         this.y = new_y;
     };
     this.collision_detection = function(new_x,new_y) {
-        var dist = 1.1 * this.size;
+        var dist = this.size+0.5;
         for (var t=-1; t<=1; t+=1){
             var beta = this.angle + t * Math.PI/2 * 0.8;
             var sx = new_x + Math.cos(beta) * dist;
@@ -267,7 +267,8 @@ function PowerUps() {
         return result;
     };
     this.add = function() {
-        for (i=0; i<10; i++) {
+        var attempts = 10;
+        for (i=0; i<attempts; i++) {
             var p = new PowerUpSpeed();
             var overlap = this.select(p.x, p.y, p.radius);
             if (overlap.length == 0) {
@@ -298,9 +299,9 @@ function PowerUps() {
 function PowerUpSpeed() {
     this.img = new Image();
     this.img.src = "img/Brain-Games-red.png";
-    this.x = (Math.random()-0.5)*board.w;
-    this.y = (Math.random()-0.5)*board.h/2;
     this.radius = 16;
+    this.x = (Math.random()-0.5)*(board.w-2*this.radius);
+    this.y = (Math.random()-0.5)*(board.h-2*this.radius);
     this.draw = function(){
         c.drawImage(this.img, this.x - this.radius + cw2, this.y - this.radius + ch2, 2*this.radius, 2*this.radius);
     };
