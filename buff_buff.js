@@ -7,90 +7,91 @@ window.onload = function(){
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
-    game_init();
+    state = 'init';
+    transition('');
     run();
 }
 
 window.addEventListener("keydown", on_keydown, true);
 window.addEventListener("keyup", on_keyup, true);
 
-function game_init() {
-    is_game_started = false;
-    is_game_ready = false;
-    is_game_over = false;
-    is_game_paused = false;
-
-    background = new Background();
-    board = new Board();
-    player = new Player();
-    info = new Info();
-    powerups = new PowerUps();
-    gamestart = new GameStart();
-    gameready = new GameReady();
-    gameover = new GameOver();
-    gamepause = new GamePause();
-
-    universe = [gamestart, background];
-}
-
-function start_game() {
-    if (is_game_over) {
-        game_init();
-    }
-    if (!is_game_ready) {
-        is_game_ready = true;
-        universe = [gameready, player, powerups, board, info, background];
-        return;
-    }
-    if (!is_game_started && is_game_ready) {
-        is_game_started = true;
-        universe = [player, powerups, board, info, background];
-        return
-    }
-    if (is_game_started) {
-        if (!is_game_paused) {
-            is_game_paused = true;
+function transition(input) {
+    // console.log({'state': state, 'input': input});
+    if ('init' === state) {
+        if ('' == input) {
+            background = new Background();
+            board = new Board();
+            player = new Player();
+            info = new Info();
+            powerups = new PowerUps();
+            gamestart = new GameStart();
+            gameready = new GameReady();
+            gameover = new GameOver();
+            gamepause = new GamePause();
+            state = 'menu';
+            universe = [gamestart, background];
+        }
+    } else if ('menu' === state) {
+        if ('enter' === input || 'space' === input) {
+            state = 'ready';
+            universe = [gameready, player, powerups, board, info, background];
+        }
+    } else if ('ready' === state) {
+        if ('enter' === input || 'space' === input) {
+            state = 'playing';
+            universe = [player, powerups, board, info, background];
+        }
+    } else if ('playing' === state) {
+        if ('step' === input) {
+            if (!player.alive) {
+                state = 'game_over';
+                universe = [gameover, player, powerups, board, info, background];
+            }
+        } else if ('esc' === input || 'enter' === input || 'space' === input) {
+            state = 'pause';
             prev_universe = universe;
             universe = [gamepause, player, powerups, board, info, background];
-        } else {
-            is_game_paused = false;
+        } else if ('left' === input) {
+            player.left_pressed = true;
+        } else if ('right' === input) {
+            player.right_pressed = true;
+        } else if ('up' === input) {
+            player.up_pressed = true;
+        } else if ('down' === input) {
+            player.down_pressed = true;
+        }
+    } else if ('pause' === state) {
+        if ('esc' === input) {
+            state = 'init';
+            transition('');
+        } else if ('enter' === input || 'space' === input) {
+            state = 'playing';
             universe = prev_universe;
         }
+    } else if ('game_over' === state) {
+        if ('enter' == input) {
+            state = 'init';
+            transition('');
+        }
     }
+
 }
 
-function escape_game() {
-    if (is_game_paused) {
-        game_init();
-    } else {
-        start_game();
-    }
-}
-
-function check_game_over() {
-    if (is_game_started && !player.alive) {
-        is_game_over = true;
-        is_game_started = false;
-        universe = [gameover, player, powerups, board, info, background];
-    }
-}
+key_to_input = {
+    37: 'left',
+    39: 'right',
+    81: 'up',
+    87: 'down',
+    13: 'enter',
+    32: 'space',
+    27: 'esc'
+};
 
 function on_keydown(e) {
     var key = e.which;
-    if (37 == key) { // left
-        player.left_pressed = true;
-    } else if (39 == key) { // right
-        player.right_pressed = true;
-    } else if (81 == key) { // q
-        player.up_pressed = true;
-    } else if (87 == key) { // w
-        player.down_pressed = true;
-    } else if (13 == key) { // enter
-        start_game();
-    } else if (32 == key) { // space
-        start_game();
-    } else if (27 == key) { // esc
-        escape_game();
+    input = key_to_input[key];
+    if (null != input) {
+        transition(input);
     } else {
         console.log({'keydown': key});
     }
@@ -114,12 +115,12 @@ function run() {
     setInterval(function() {
         for (var i = universe.length-1; i >= 0; i--) {
             object = universe[i];
-            if (is_game_started && !is_game_over && !is_game_paused) {
+            if (state === 'playing') {
                 object.move();
             }
             object.draw();
         }
-        check_game_over();
+        transition('step');
     }, 25);
 }
 
