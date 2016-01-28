@@ -1,9 +1,9 @@
 window.onload = function(){
     canvas = document.getElementById("big");
     canvas.width = window.innerWidth * 0.9;
-    canvas.width = 600;
+    canvas.width = 800;
     canvas.height = window.innerHeight * 0.85;
-    canvas.height = 450;
+    canvas.height = 600;
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
@@ -69,7 +69,7 @@ function transition(input) {
             universe = prev_universe;
         }
     } else if ('game_over' === state) {
-        if ('enter' == input) {
+        if ('enter' == input || 'space' == input) {
             state = 'init';
             transition('');
         }
@@ -135,7 +135,7 @@ function Player(){
     this.score = 0;
     this.size = 2;
     this.angle_delta = 1.0/64;
-    this.angle = 0.0 * Math.PI;
+    this.angle = Math.random() * 2 * Math.PI;
     this.v = 1;
     this.x = (Math.random()-0.5)*(board.w-32);
     this.y = (Math.random()-0.5)*(board.h-32);
@@ -153,7 +153,7 @@ function Player(){
             return;
         }
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
-        this.size = this.size*dsize;
+        this.size = this.size * dsize;
         var dangle = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
         this.angle += dangle * this.angle_delta * 2.0 * Math.PI;
         var s = dangle != 0 ? this.v * Math.sqrt(this.size) : this.v;
@@ -187,15 +187,15 @@ function Player(){
             if (hit) {
                 this.alive = false;
             }
-            powerups.pick_from(sx,sy);
+            powerups.pick_from(this, sx, sy);
         }
     };
 }
 
 function Board() {
     this.space_canvas = document.getElementById("board");
-    this.w = 400;
-    this.h = 400;
+    this.w = 560;
+    this.h = this.w;
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
     this.x = - this.w/2;
@@ -255,14 +255,15 @@ function Board() {
 }
 
 function PowerUps() {
-    this.array = [];
+    this.instock = [];
+    this.taken = [];
     this.select = function(x,y, other_radius) {
         var result = [];
         if (!other_radius) {
             other_radius = 0;
         }
-        for (var i=this.array.length-1; i>=0; i--) {
-            var p = this.array[i];
+        for (var i=this.instock.length-1; i>=0; i--) {
+            var p = this.instock[i];
             var dx = x - p.x;
             var dy = y - p.y;
             var dist = Math.sqrt(dx*dx+dy*dy) - p.radius - other_radius;
@@ -278,40 +279,72 @@ function PowerUps() {
             var p = new PowerUpSpeed();
             var overlap = this.select(p.x, p.y, p.radius);
             if (overlap.length == 0) {
-                this.array.push(p);
+                this.instock.push(p);
                 return;
             }
         }
     };
-    this.pick_from = function(x,y) {
+    this.pick_from = function(pl, x, y) {
         var result = this.select(x,y);
         for (var i=result.length-1; i>=0; i--) {
             var p = result[i];
-            this.array.splice(this.array.indexOf(p),1);
+            this.taken.push(p);
+            this.instock.splice(this.instock.indexOf(p),1);
+            p.upgrade(pl);
         }
     };
     this.draw = function(){
-        for (var i=0; i<this.array.length; i++) {
-            this.array[i].draw();
+        for (var i=0; i<this.instock.length; i++) {
+            this.instock[i].draw();
         }
     };
     this.move = function(){
-        if (Math.random() < 1.0/(10. + this.array.length*this.array.length)) {
+        var x = this.instock.length;
+        if (Math.random() < 1.0/(100. + (x+2)*(x+2))) {
             this.add();
+        }
+        for (var i=0; i<this.instock.length; i++) {
+            this.instock[i].move();
+        }
+        for (var i=this.taken.length-1; i>=0; i--) {
+            var p = this.taken[i];
+            p.move();
+            if (null === this.owner) {
+                this.taken.splice(i,1);
+            }
         }
     };
 }
 
 function PowerUpSpeed() {
+    this.owner = null;
     this.img = new Image();
     this.img.src = "img/Brain-Games-red.png";
     this.radius = 16;
+    this.age = 0;
     this.x = (Math.random()-0.5)*(board.w-2*this.radius);
     this.y = (Math.random()-0.5)*(board.h-2*this.radius);
     this.draw = function(){
         c.drawImage(this.img, this.x - this.radius + cw2, this.y - this.radius + ch2, 2*this.radius, 2*this.radius);
     };
-    this.move = function(){};
+    this.move = function(){
+        if (null === this.owner) {
+            return;
+        }
+        this.age += 1;
+        if (this.age >= 1000) {
+            this.release();
+        }
+    };
+    this.upgrade = function(pl) {
+        this.owner = pl;
+        pl.size *= 1.5;
+    };
+    this.release = function() {
+        var pl = this.owner;
+        pl.size *= 1.0/1.5;
+        this.owner = null;
+    };
 }
 
 function Background() {
@@ -328,8 +361,8 @@ function Info(){
         c.fillStyle = player.alive ? "white" : "grey";
         c.font = "16px pixelfont";
         c.textAlign = "left";
-        c.fillText("Score: " + player.score, cw2-120, 16);
-        c.fillText("Time: " + board.time, cw2+100, 16);
+        c.fillText("Score: " + player.score, cw2+board.w/2+4, 32);
+        c.fillText("Time: " + board.time, cw2+board.w/2+4, 64);
     };
     this.move = function(){}
 }
