@@ -1,7 +1,9 @@
 window.onload = function(){
     canvas = document.getElementById("big");
     canvas.width = window.innerWidth * 0.9;
+    canvas.width = 600;
     canvas.height = window.innerHeight * 0.85;
+    canvas.height = 450;
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
@@ -131,17 +133,17 @@ function Player(){
     this.alive = true;
     this.score = 0;
     this.size = 2;
-    this.angle_delta = 1.0/32;
+    this.angle_delta = 1.0/64;
     this.angle = 0.0 * Math.PI;
     this.v = 1;
-    this.x = (Math.random()-0.5)*(board.w-32)+16;
-    this.y = (Math.random()-0.5)*(board.h-32)+16;
+    this.x = (Math.random()-0.5)*(board.w-32);
+    this.y = (Math.random()-0.5)*(board.h-32);
     this.prev_x = this.x;
     this.prev_y = this.y;
     this.is_transparent = false;
     this.draw = function(){
         c.beginPath();
-        c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 1*Math.PI, this.angle + 1 * Math.PI, false);
+        c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
         c.fillStyle = "yellow";
         c.fill();
     }
@@ -152,8 +154,9 @@ function Player(){
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
         this.size = this.size*dsize;
         var dangle = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
-        this.angle += dangle * this.angle_delta / Math.max(2.0, Math.sqrt(this.size)) * 2.0 * Math.PI;
-        var vx = Math.cos(this.angle) * this.v; var vy = Math.sin(this.angle) * this.v;
+        this.angle += dangle * this.angle_delta * 2.0 * Math.PI;
+        var s = dangle != 0 ? this.v * Math.sqrt(this.size) : this.v;
+        var vx = Math.cos(this.angle) * s; var vy = Math.sin(this.angle) * s;
         var new_x = this.x + vx;
         var new_y = this.y + vy;
         this.collision_detection(new_x, new_y);
@@ -174,7 +177,7 @@ function Player(){
         this.y = new_y;
     };
     this.collision_detection = function(new_x,new_y) {
-        var dist = this.size+0.5;
+        var dist = this.size+1;
         for (var t=-1; t<=1; t+=1){
             var beta = this.angle + t * Math.PI/2 * 0.8;
             var sx = new_x + Math.cos(beta) * dist;
