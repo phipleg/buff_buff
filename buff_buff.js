@@ -237,7 +237,7 @@ function Board() {
         ctx.stroke();
     };
     this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
-        var ctx = board.space_ctx;
+        var ctx = this.space_ctx;
         ctx.beginPath();
         ctx.lineWidth = lineWidth;
         ctx.moveTo(x1+this.w/2, y1+this.h/2);
@@ -246,6 +246,11 @@ function Board() {
         ctx.strokeStyle = strokeStyle;
         ctx.stroke();
     };
+    this.clear = function() {
+        var ctx = this.space_ctx;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,this.w,this.h);
+    }
     this.is_empty_at = function(points) {
         var x1=board.w; x2=0; y1=board.h; y2=0;
         for (var i=0; i<points.length-1; i+=2) {
@@ -297,15 +302,18 @@ function PowerUps() {
     this.taken = [];
     this.usage = {};
     this.add = function() {
-        var attempts = 0;
+        var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            switch(getRandomInt(5)) {
+            var rnd = getRandomInt(6);
+            rnd = 4;
+            switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
                 case 2: p = new PowerUpThicker(); break;
                 case 3: p = new PowerUpThinner(); break;
-                case 4: p = new PowerUpFlight(); break;
+                case 4: p = new PowerUpClear(); break;
+                case 5: p = new PowerUpFlight(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -443,6 +451,18 @@ function PowerUpSlower() {
     };
     this.release = function(pl) {
         pl.v /= 0.5;
+    };
+}
+
+PowerUpClear.prototype = new PowerUpBase();
+PowerUpClear.prototype.constructor = PowerUpClear;
+function PowerUpClear() {
+    this.img.src = "img/font-awesome/svg/square62.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        board.clear();
+    };
+    this.release = function(pl) {
     };
 }
 
