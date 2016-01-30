@@ -131,11 +131,11 @@ function Player(){
     this.up_pressed = false;
     this.down_pressed = false;
     this.name = "Player";
-    this.strokeStyle = "rgba(255,0,0,0.9)";
+    this.strokeStyle = "rgba(255,0,0,1.0)";
     this.alive = true;
     this.score = 0;
     this.size = 20;
-    this.angle_delta = 1.0/64;
+    this.angle_delta = Math.PI/16;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
     this.x = (Math.random()-0.5)*(board.w-32);
@@ -143,8 +143,8 @@ function Player(){
     this.angle = 0;
     this.x = 0;
     this.y = 0;
-    this.prev_x = this.x;
-    this.prev_y = this.y;
+    this.x1 = this.x;
+    this.y1 = this.y;
     this.transparent = 0;
     this.has_hole = false;
     this.has_track = false;
@@ -164,35 +164,43 @@ function Player(){
         if (!this.alive) {
             return;
         }
+        this.has_hole = false; // board.time % 100 >= 80;
+        this.has_track = !(this.has_hole || this.transparent > 0);
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
         this.size = this.size * dsize;
-        var dangle = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
-        this.angle += dangle * this.angle_delta * 2.0 * Math.PI;
-        var s = dangle != 0 ? this.v * Math.sqrt(this.size) : this.v;
-        var vx = Math.cos(this.angle) * s; var vy = Math.sin(this.angle) * s;
-        var new_x = clip(this.x+vx, -board.w/2, board.w/2);
-        var new_y = clip(this.y+vy, -board.h/2, board.h/2);
-
-        this.has_hole = board.time % 100 >= 80;
-        this.has_track = !(this.has_hole || this.transparent > 0);
-        var hit = this.collision_detection(new_x, new_y);
+        var direction = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
+        var prev_angle = this.angle;
+        var da = direction * this.angle_delta;
+        this.angle += da;
+        if (Math.abs(da) >= Math.PI/4) {
+            this.left_pressed = false;
+            this.right_pressed = false;
+        }
+        var dl = Math.abs(Math.sin(da)) * (this.size+1);
+        if (dl < this.v) {
+            dl = this.v;
+        }
+        var dx = Math.cos(this.angle) * dl;
+        var dy = Math.sin(this.angle) * dl;
+        var x0 = clip(this.x + dx, -board.w/2, board.w/2);
+        var y0 = clip(this.y + dy, -board.h/2, board.h/2);
+        var hit = this.collision_detection(x0, y0);
         if (this.has_track) {
             if (hit) {
                 this.alive = false;
-                //return;
             }
-            board.add_line(this.prev_x, this.prev_y, this.x, this.y, new_x, new_y, 2* this.size, this.strokeStyle);
+            board.add_line(this.x1, this.y1, this.x, this.y, x0, y0, 2* this.size, this.strokeStyle);
         }
-        this.prev_x = this.x;
-        this.prev_y = this.y;
-        this.x = new_x;
-        this.y = new_y;
+        this.x1 = this.x;
+        this.y1 = this.y;
+        this.x = x0;
+        this.y = y0;
     };
     this.collision_detection = function(new_x,new_y) {
         var dist = this.size;
         var points = [];
         for (var t=-1; t<=1; t+=0.2){
-            var beta = this.angle + t* Math.PI/2 * 1;
+            var beta = this.angle + t* Math.PI/2 * 0.8;
             var sx = new_x + Math.cos(beta) * dist;
             var sy = new_y + Math.sin(beta) * dist;
             points.push(Math.floor(sx));
@@ -232,7 +240,8 @@ function Board() {
         var ctx = board.space_ctx;
         ctx.beginPath();
         ctx.lineWidth = lineWidth;
-        ctx.moveTo(x1+this.w/2,y1+this.h/2);
+        ctx.moveTo(x1+this.w/2, y1+this.h/2);
+        //ctx.lineTo(x2+this.w/2, y2+this.h/2);
         ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
         ctx.strokeStyle = strokeStyle;
         ctx.stroke();
@@ -278,7 +287,7 @@ function Board() {
                 //ctx.rect(tx,ty,0.2,0.2);
                 //ctx.stroke();
             }
-        } 
+        }
         return hits.length == 0;
     };
 }
