@@ -136,7 +136,7 @@ function Player(){
     this.size = 2;
     this.angle_delta = 1.0/64;
     this.angle = Math.random() * 2 * Math.PI;
-    this.v = 1;
+    this.v = 2;
     this.x = (Math.random()-0.5)*(board.w-32);
     this.y = (Math.random()-0.5)*(board.h-32);
     this.prev_x = this.x;
@@ -158,17 +158,17 @@ function Player(){
         this.angle += dangle * this.angle_delta * 2.0 * Math.PI;
         var s = dangle != 0 ? this.v * Math.sqrt(this.size) : this.v;
         var vx = Math.cos(this.angle) * s; var vy = Math.sin(this.angle) * s;
-        var new_x = this.x + vx;
-        var new_y = this.y + vy;
-        this.collision_detection(new_x, new_y);
-        if (!this.alive) {
-            return;
-        }
-        var tf = 0;
-        if (board.time % 100 >= 80 ) {
-            tf = 1;
-        }
-        if (0 == tf + this.transparent) {
+        var new_x = clip(this.x+vx, -board.w/2, board.w/2);
+        var new_y = clip(this.y+vy, -board.h/2, board.h/2);
+
+        var has_hole = board.time % 100 >= 80;
+        var has_track = !(has_hole || this.transparent > 0);
+        var hit = this.collision_detection(new_x, new_y);
+        if (has_track) {
+            if (hit) {
+                this.alive = false;
+                return;
+            }
             board.add_line(this.prev_x, this.prev_y, this.x, this.y, new_x, new_y, 2* this.size);
         }
         this.prev_x = this.x;
@@ -184,7 +184,7 @@ function Player(){
             var sy = new_y + Math.sin(beta) * dist;
             var hit = !board.is_empty_at(sx, sy);
             if (hit) {
-                this.alive = false;
+                return hit;
             }
             powerups.pick_from(this, sx, sy);
         }
@@ -229,9 +229,9 @@ function Board() {
         c.stroke();
     };
     this.is_empty_at = function(x,y) {
+        var ix = clip(x+this.w/2, 0, this.w);
+        var iy = clip(y+this.h/2, 0, this.h);
         var ctx = this.space_ctx;
-        var ix = Math.max(0, Math.min(this.w, x+this.w/2));
-        var iy = Math.max(0, Math.min(this.h, y+this.h/2));
         var id = ctx.getImageData(ix,iy,1,1);
         //ctx.fillStyle = "rgb(0,255,0)";
         //ctx.fillRect(ix,iy,1,1);
@@ -479,4 +479,8 @@ function GameStart(){
 
 function getRandomInt(n) {
     return Math.floor(Math.random() * n);
+}
+
+function clip(x, min, max) {
+    return Math.max(min, Math.min(max,x));
 }

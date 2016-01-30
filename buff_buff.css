@@ -4,13 +4,13 @@
 }
 
 body {
-    background-color: darkgrey;
+    background-color: black;
     margin: 0;
 }
 
 canvas {
     display: block;
-    margin: 0px auto;
+    margin: 0 auto;
     //width: 800px;
     //position: absolute;
     //left: 0px;
