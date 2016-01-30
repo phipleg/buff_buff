@@ -216,17 +216,48 @@ function Player(){
         this.angle += da;
         var dx = Math.cos(this.angle) * dl;
         var dy = Math.sin(this.angle) * dl;
-        var x0 = clip(this.x + dx, -board.w/2, board.w/2);
-        var y0 = clip(this.y + dy, -board.h/2, board.h/2);
+        var x0 = this.x + dx;
+        var y0 = this.y + dy;
+        var jump = false;
+
+        if (x0 < -board.w/2 || x0 >= board.w/2 || y0 < -board.h/2 || y0 >= board.h/2) {
+            if (board.endless >= 1) {
+                jump = true;
+                if (x0 < -board.w/2) {
+                    x0 += board.w;
+                }
+                if (x0 >= board.w/2) {
+                    x0 -= board.w;
+                }
+                if (y0 < -board.h/2) {
+                    y0 += board.h;
+                }
+                if (y0 >= board.h/2) {
+                    y0 -= board.h;
+                }
+            } else {
+            x0 = clip(x0, -board.w/2, board.w/2);
+            y0 = clip(y0, -board.h/2, board.h/2);
+            }
+        }
         var hit = this.collision_detection(x0, y0);
         if (this.has_track) {
             if (hit) {
                 this.alive = false;
             }
-            board.add_line(this.x1, this.y1, this.x, this.y, x0, y0, 2* this.size, this.strokeStyle);
+            if (jump) {
+                board.add_line(x0, y0, x0, y0, x0, y0, 2* this.size, this.strokeStyle);
+            } else {
+                board.add_line(this.x1, this.y1, this.x, this.y, x0, y0, 2* this.size, this.strokeStyle);
+            }
         }
-        this.x1 = this.x;
-        this.y1 = this.y;
+        if (jump) {
+            this.x1 = x0;
+            this.y1 = y0;
+        } else {
+            this.x1 = this.x;
+            this.y1 = this.y;
+        }
         this.x = x0;
         this.y = y0;
     };
@@ -277,11 +308,19 @@ function Board() {
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
     this.time = 0;
+    this.endless = 0;
     this.space_ctx = this.space_canvas.getContext("2d");
     this.draw = function() {
         var ctx = this.space_ctx;
         var imDat = ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
+        if (this.endless >= 1) {
+            c.beginPath();
+            c.lineWidth="4";
+            c.strokeStyle="rgba(255,255,0," + (0.5 + 0.5*Math.sin(this.time/10.0)) + ")";
+            c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
+            c.stroke();
+        }
     };
     this.move = function(){
         this.time += 1;
@@ -291,7 +330,11 @@ function Board() {
         var ctx = this.space_ctx;
         ctx.beginPath();
         ctx.lineWidth="4";
-        ctx.strokeStyle="yellow";
+        if (this.endless >= 1) {
+            ctx.strokeStyle="black";
+        } else {
+            ctx.strokeStyle="yellow";
+        }
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
     };
@@ -309,7 +352,7 @@ function Board() {
         var ctx = this.space_ctx;
         ctx.fillStyle = 'black';
         ctx.fillRect(0,0,this.w,this.h);
-    }
+    };
     this.is_empty_at = function(points) {
         var x1=board.w; x2=0; y1=board.h; y2=0;
         for (var i=0; i<points.length-1; i+=2) {
@@ -364,7 +407,8 @@ function PowerUps() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            var rnd = getRandomInt(7);
+            var rnd = getRandomInt(8);
+            rnd = 7;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -373,6 +417,7 @@ function PowerUps() {
                 case 4: p = new PowerUpClear(); break;
                 case 5: p = new PowerUpFlight(); break;
                 case 6: p = new PowerUpRect(); break;
+                case 7: p = new PowerUpFluffy(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -548,6 +593,19 @@ function PowerUpRect() {
     };
     this.release = function(pl) {
         pl.rectangular -= 1;
+    };
+}
+
+PowerUpFluffy.prototype = new PowerUpBase();
+PowerUpFluffy.prototype.constructor = PowerUpFluffy;
+function PowerUpFluffy() {
+    this.img.src = "img/font-awesome/svg/fluffy1.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        board.endless += 1;
+    };
+    this.release = function(pl) {
+        board.endless -= 1;
     };
 }
 
