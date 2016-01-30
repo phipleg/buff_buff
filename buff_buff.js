@@ -141,7 +141,7 @@ function Player(){
     this.y = (Math.random()-0.5)*(board.h-32);
     this.prev_x = this.x;
     this.prev_y = this.y;
-    this.is_transparent = false;
+    this.transparent = 0;
     this.draw = function(){
         c.beginPath();
         c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
@@ -164,12 +164,11 @@ function Player(){
         if (!this.alive) {
             return;
         }
+        var tf = 0;
         if (board.time % 100 >= 80 ) {
-            this.is_transparent = true;
-        } else {
-            this.is_transparent = false;
+            tf = 1;
         }
-        if (!this.is_transparent) {
+        if (0 == tf + this.transparent) {
             board.add_line(this.prev_x, this.prev_y, this.x, this.y, new_x, new_y, 2* this.size);
         }
         this.prev_x = this.x;
@@ -266,7 +265,16 @@ function PowerUps() {
     this.add = function() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
-            var p = new PowerUpSpeed();
+            var p;
+            switch(getRandomInt(5)) {
+                case 0: p = new PowerUpFaster(); break;
+                case 1: p = new PowerUpSlower(); break;
+                case 2: p = new PowerUpThicker(); break;
+                case 3: p = new PowerUpThinner(); break;
+                case 4: p = new PowerUpFlight(); break;
+            }
+            p.x = (Math.random()-0.5)*(board.w-2*p.radius);
+            p.y = (Math.random()-0.5)*(board.h-2*p.radius);
             var overlap = this.select(p.x, p.y, p.radius);
             if (overlap.length == 0) {
                 this.available.push(p);
@@ -280,6 +288,7 @@ function PowerUps() {
             var p = result[i];
             this.taken.push(p);
             this.available.splice(this.available.indexOf(p),1);
+            p.age = 0;
             p.upgrade(pl);
             this.usage[p] = pl;
         }
@@ -309,28 +318,94 @@ function PowerUps() {
     };
 }
 
-function PowerUpSpeed() {
+function PowerUpBase() {
     this.img = new Image();
-    this.img.src = "img/Brain-Games-red.png";
+    this.x = 0;
+    this.y = 0;
     this.radius = 16;
     this.age = Number.MIN_VALUE;
-    this.x = (Math.random()-0.5)*(board.w-2*this.radius);
-    this.y = (Math.random()-0.5)*(board.h-2*this.radius);
+    this.benevolent = true;
     this.draw = function(){
-        c.drawImage(this.img, this.x - this.radius + cw2, this.y - this.radius + ch2, 2*this.radius, 2*this.radius);
+        c.beginPath();
+        c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
+        c.fillStyle = this.benevolent ? "green" : "red";
+        c.fill();
+        var r = 16.0;
+        var w = 512/r;
+        var h = 346/r;
+        c.drawImage(this.img, this.x-w/2+cw2, this.y-h/2+ch2, w, h);
     };
     this.finished = function() {
-        return this.age >= 100;
+        var max_age = 500;
+        return this.age > max_age;
     };
     this.move = function(){
         this.age += 1;
     };
+}
+
+PowerUpThicker.prototype = new PowerUpBase();
+PowerUpThicker.prototype.constructor = PowerUpThicker;
+function PowerUpThicker() {
+    this.img.src = "img/font-awesome/svg/circular56.svg";
+    this.benevolent = true;
     this.upgrade = function(pl) {
-        pl.size *= 2;
-        this.age = 0;
+        pl.size *= 2.0;
     };
     this.release = function(pl) {
+        pl.size /= 2.0;
+    };
+}
+
+PowerUpThinner.prototype = new PowerUpBase();
+PowerUpThinner.prototype.constructor = PowerUpSlower;
+function PowerUpThinner() {
+    this.img.src = "img/font-awesome/svg/adjust4.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
         pl.size *= 0.5;
+    };
+    this.release = function(pl) {
+        pl.size /= 0.5;
+    };
+}
+
+PowerUpFaster.prototype = new PowerUpBase();
+PowerUpFaster.prototype.constructor = PowerUpFaster;
+function PowerUpFaster() {
+    this.img.src = "img/font-awesome/svg/lightning14.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        pl.v *= 2.0;
+    };
+    this.release = function(pl) {
+        pl.v /= 2.0;
+    };
+}
+
+PowerUpSlower.prototype = new PowerUpBase();
+PowerUpSlower.prototype.constructor = PowerUpSlower;
+function PowerUpSlower() {
+    this.img.src = "img/font-awesome/svg/bug6.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        pl.v *= 0.5;
+    };
+    this.release = function(pl) {
+        pl.v /= 0.5;
+    };
+}
+
+PowerUpFlight.prototype = new PowerUpBase();
+PowerUpFlight.prototype.constructor = PowerUpFlight;
+function PowerUpFlight() {
+    this.img.src = "img/font-awesome/svg/plane12.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        pl.transparent += 1;
+    };
+    this.release = function(pl) {
+        pl.transparent -= 1;
     };
 }
 
@@ -400,4 +475,8 @@ function GameStart(){
         c.fillText("press space to play", cw2, ch2+130)
     };
     this.move = function(){}
+}
+
+function getRandomInt(n) {
+    return Math.floor(Math.random() * n);
 }
