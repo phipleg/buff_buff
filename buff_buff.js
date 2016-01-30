@@ -134,7 +134,7 @@ function Player(){
     this.strokeStyle = "rgba(255,0,0,1.0)";
     this.alive = true;
     this.score = 0;
-    this.size = 20;
+    this.size = 2;
     this.angle_delta = 0.0;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
@@ -163,11 +163,14 @@ function Player(){
             x += 2*this.size*Math.cos(this.angle+0.5*Math.PI);
             y += 2*this.size*Math.sin(this.angle+0.5*Math.PI);
             c.lineTo(x,y);
-            x += this.size*Math.cos(this.angle+1.0*Math.PI);
-            y += this.size*Math.sin(this.angle+1.0*Math.PI);
+            x += 2*this.size*Math.cos(this.angle+1.0*Math.PI);
+            y += 2*this.size*Math.sin(this.angle+1.0*Math.PI);
+            c.lineTo(x,y);
+            x += 2*this.size*Math.cos(this.angle+1.5*Math.PI);
+            y += 2*this.size*Math.sin(this.angle+1.5*Math.PI);
             c.lineTo(x,y);
             c.closePath();
-            if (this.has_track) {
+            if (this.transparent == 0) {
                 c.fillStyle = "yellow";
                 c.fill();
             } else {
@@ -176,12 +179,11 @@ function Player(){
             }
         } else {
             c.beginPath();
-            c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
-            if (this.has_track) {
+            c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
+            if (this.transparent == 0) {
                 c.fillStyle = "yellow";
                 c.fill();
             } else {
-                c.lineTo(this.x+cw2 + this.size*Math.cos(this.angle-0.5*Math.PI), this.y+ch2+this.size*Math.sin(this.angle-0.5*Math.PI));
                 c.strokeStyle = "yellow";
                 c.stroke();
             }
@@ -203,15 +205,15 @@ function Player(){
             this.angle_delta = Math.PI/16;
         }
         var da = direction * this.angle_delta;
-        this.angle += da;
-        if (Math.abs(da) >= Math.PI/4) {
+        var dl = Math.abs(Math.sin(da)) * (this.size+1);
+        if (this.rectangular >= 1) {
             this.left_pressed = false;
             this.right_pressed = false;
         }
-        var dl = Math.abs(Math.sin(da)) * (this.size+1);
-        if (dl < this.v) {
+        if (dl < this.v && (this.rectangular == 0 || direction == 0)) {
             dl = this.v;
         }
+        this.angle += da;
         var dx = Math.cos(this.angle) * dl;
         var dy = Math.sin(this.angle) * dl;
         var x0 = clip(this.x + dx, -board.w/2, board.w/2);
@@ -462,7 +464,7 @@ function PowerUpBase() {
 PowerUpThicker.prototype = new PowerUpBase();
 PowerUpThicker.prototype.constructor = PowerUpThicker;
 function PowerUpThicker() {
-    this.img.src = "img/font-awesome/svg/circular56.svg";
+    this.img.src = "img/font-awesome/svg/plus26.svg";
     this.benevolent = true;
     this.upgrade = function(pl) {
         pl.size *= 2.0;
@@ -475,7 +477,7 @@ function PowerUpThicker() {
 PowerUpThinner.prototype = new PowerUpBase();
 PowerUpThinner.prototype.constructor = PowerUpSlower;
 function PowerUpThinner() {
-    this.img.src = "img/font-awesome/svg/adjust4.svg";
+    this.img.src = "img/font-awesome/svg/minus20.svg";
     this.benevolent = true;
     this.upgrade = function(pl) {
         pl.size *= 0.5;
