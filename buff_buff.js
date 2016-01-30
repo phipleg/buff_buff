@@ -135,7 +135,7 @@ function Player(){
     this.alive = true;
     this.score = 0;
     this.size = 20;
-    this.angle_delta = Math.PI/16;
+    this.angle_delta = 0.0;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
     this.x = (Math.random()-0.5)*(board.w-32);
@@ -145,31 +145,63 @@ function Player(){
     this.y = 0;
     this.x1 = this.x;
     this.y1 = this.y;
-    this.transparent = 0;
     this.has_hole = false;
     this.has_track = false;
+    this.transparent = 0;
+    this.rectangular = 0;
     this.draw = function(){
-        c.beginPath();
-        c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
-        if (this.has_track) {
-            c.fillStyle = "yellow";
-            c.fill();
+        if (this.rectangular >= 1) {
+            c.beginPath();
+            var x = this.x + cw2;
+            var y = this.y + ch2;
+            x += this.size*Math.cos(this.angle-0.5*Math.PI);
+            y += this.size*Math.sin(this.angle-0.5*Math.PI);
+            c.moveTo(x,y);
+            x += this.size*Math.cos(this.angle-0.0*Math.PI);
+            y += this.size*Math.sin(this.angle-0.0*Math.PI);
+            c.lineTo(x,y);
+            x += 2*this.size*Math.cos(this.angle+0.5*Math.PI);
+            y += 2*this.size*Math.sin(this.angle+0.5*Math.PI);
+            c.lineTo(x,y);
+            x += this.size*Math.cos(this.angle+1.0*Math.PI);
+            y += this.size*Math.sin(this.angle+1.0*Math.PI);
+            c.lineTo(x,y);
+            c.closePath();
+            if (this.has_track) {
+                c.fillStyle = "yellow";
+                c.fill();
+            } else {
+                c.strokeStyle = "yellow";
+                c.stroke();
+            }
         } else {
-            c.lineTo(this.x+cw2 + this.size*Math.cos(this.angle-0.5*Math.PI), this.y+ch2+this.size*Math.sin(this.angle-0.5*Math.PI));
-            c.strokeStyle = "yellow";
-            c.stroke();
+            c.beginPath();
+            c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
+            if (this.has_track) {
+                c.fillStyle = "yellow";
+                c.fill();
+            } else {
+                c.lineTo(this.x+cw2 + this.size*Math.cos(this.angle-0.5*Math.PI), this.y+ch2+this.size*Math.sin(this.angle-0.5*Math.PI));
+                c.strokeStyle = "yellow";
+                c.stroke();
+            }
         }
     }
     this.move = function(){
         if (!this.alive) {
             return;
         }
-        this.has_hole = false; // board.time % 100 >= 80;
+        this.has_hole = board.time % 100 >= 80;
         this.has_track = !(this.has_hole || this.transparent > 0);
         var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
         this.size = this.size * dsize;
         var direction = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
         var prev_angle = this.angle;
+        if (this.rectangular >= 1) {
+            this.angle_delta = Math.PI/2;
+        } else {
+            this.angle_delta = Math.PI/16;
+        }
         var da = direction * this.angle_delta;
         this.angle += da;
         if (Math.abs(da) >= Math.PI/4) {
@@ -199,13 +231,38 @@ function Player(){
     this.collision_detection = function(new_x,new_y) {
         var dist = this.size;
         var points = [];
-        for (var t=-1; t<=1; t+=0.2){
-            var beta = this.angle + t* Math.PI/2 * 0.8;
-            var sx = new_x + Math.cos(beta) * dist;
-            var sy = new_y + Math.sin(beta) * dist;
+        if (this.rectangular >= 1) {
+            var sx = new_x;
+            var sy = new_y;
+            sx += this.size*Math.cos(this.angle-0.5*Math.PI);
+            sy += this.size*Math.sin(this.angle-0.5*Math.PI);
             points.push(Math.floor(sx));
             points.push(Math.floor(sy));
-            powerups.pick_from(this, sx, sy);
+            sx += this.size*Math.cos(this.angle-0.0*Math.PI);
+            sy += this.size*Math.sin(this.angle-0.0*Math.PI);
+            points.push(Math.floor(sx));
+            points.push(Math.floor(sy));
+            sx += this.size*Math.cos(this.angle+0.5*Math.PI);
+            sy += this.size*Math.sin(this.angle+0.5*Math.PI);
+            points.push(Math.floor(sx));
+            points.push(Math.floor(sy));
+            sx += this.size*Math.cos(this.angle+0.5*Math.PI);
+            sy += this.size*Math.sin(this.angle+0.5*Math.PI);
+            points.push(Math.floor(sx));
+            points.push(Math.floor(sy));
+            sx += this.size*Math.cos(this.angle+1.0*Math.PI);
+            sy += this.size*Math.sin(this.angle+1.0*Math.PI);
+        } else {
+            for (var t=-1; t<=1; t+=0.2){
+                var beta = this.angle + t* Math.PI/2 * 0.8;
+                var sx = new_x + Math.cos(beta) * dist;
+                var sy = new_y + Math.sin(beta) * dist;
+                points.push(Math.floor(sx));
+                points.push(Math.floor(sy));
+            }
+        }
+        for (var i=0; i<points.length-1; i+=2) {
+            powerups.pick_from(this, points[i], points[i+1]);
         }
         return !board.is_empty_at(points);
     };
@@ -305,8 +362,7 @@ function PowerUps() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            var rnd = getRandomInt(6);
-            rnd = 4;
+            var rnd = getRandomInt(7);
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -314,6 +370,7 @@ function PowerUps() {
                 case 3: p = new PowerUpThinner(); break;
                 case 4: p = new PowerUpClear(); break;
                 case 5: p = new PowerUpFlight(); break;
+                case 6: p = new PowerUpRect(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -457,7 +514,7 @@ function PowerUpSlower() {
 PowerUpClear.prototype = new PowerUpBase();
 PowerUpClear.prototype.constructor = PowerUpClear;
 function PowerUpClear() {
-    this.img.src = "img/font-awesome/svg/square62.svg";
+    this.img.src = "img/font-awesome/svg/heart75.svg";
     this.benevolent = true;
     this.upgrade = function(pl) {
         board.clear();
@@ -476,6 +533,19 @@ function PowerUpFlight() {
     };
     this.release = function(pl) {
         pl.transparent -= 1;
+    };
+}
+
+PowerUpRect.prototype = new PowerUpBase();
+PowerUpRect.prototype.constructor = PowerUpRect;
+function PowerUpRect() {
+    this.img.src = "img/font-awesome/svg/retweet2.svg";
+    this.benevolent = true;
+    this.upgrade = function(pl) {
+        pl.rectangular += 1;
+    };
+    this.release = function(pl) {
+        pl.rectangular -= 1;
     };
 }
 
