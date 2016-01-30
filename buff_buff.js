@@ -194,34 +194,24 @@ function Player(){
 
 function Board() {
     this.space_canvas = document.getElementById("board");
-    this.w = 560;
+    this.w = 600;
     this.h = this.w;
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
-    this.x = - this.w/2;
-    this.y = - this.h/2;
     this.time = 0;
     this.space_ctx = this.space_canvas.getContext("2d");
-    this.add_border = function() {
+    this.draw = function() {
         var ctx = this.space_ctx;
         ctx.beginPath();
-        ctx.lineWidth="1";
-        ctx.strokeStyle="red";
+        ctx.lineWidth="4";
+        ctx.strokeStyle="yellow";
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
-    };
-    this.draw = function() {
-        var id = this.space_ctx.getImageData(0,0,this.w,this.h);
-        c.putImageData(id,this.x+cw2,this.y+ch2);
-        c.beginPath();
-        c.lineWidth="1";
-        c.strokeStyle="yellow";
-        c.rect(this.x + cw2, this.y + ch2, this.w, this.h);
-        c.stroke();
+        var imDat = ctx.getImageData(0,0,this.w,this.h);
+        c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
     };
     this.move = function(){
         this.time += 1;
-        this.add_border();
     };
     this.add_circle = function(x,y,radius) {
         var c = board.space_ctx;
@@ -244,10 +234,9 @@ function Board() {
         var ix = Math.max(0, Math.min(this.w, x+this.w/2));
         var iy = Math.max(0, Math.min(this.h, y+this.h/2));
         var id = ctx.getImageData(ix,iy,1,1);
-        var r = id.data[0]; // detect collisions on red channel
         //ctx.fillStyle = "rgb(0,255,0)";
         //ctx.fillRect(ix,iy,1,1);
-        if (r > 0) {
+        if (id.data[0] > 0 || id.data[1] > 0 || id.data[2] > 0) {
             return false;
         }
         return true;
@@ -255,15 +244,16 @@ function Board() {
 }
 
 function PowerUps() {
-    this.instock = [];
+    this.available = [];
     this.taken = [];
+    this.usage = {};
     this.select = function(x,y, other_radius) {
         var result = [];
         if (!other_radius) {
             other_radius = 0;
         }
-        for (var i=this.instock.length-1; i>=0; i--) {
-            var p = this.instock[i];
+        for (var i=this.available.length-1; i>=0; i--) {
+            var p = this.available[i];
             var dx = x - p.x;
             var dy = y - p.y;
             var dist = Math.sqrt(dx*dx+dy*dy) - p.radius - other_radius;
@@ -279,7 +269,7 @@ function PowerUps() {
             var p = new PowerUpSpeed();
             var overlap = this.select(p.x, p.y, p.radius);
             if (overlap.length == 0) {
-                this.instock.push(p);
+                this.available.push(p);
                 return;
             }
         }
@@ -289,27 +279,30 @@ function PowerUps() {
         for (var i=result.length-1; i>=0; i--) {
             var p = result[i];
             this.taken.push(p);
-            this.instock.splice(this.instock.indexOf(p),1);
+            this.available.splice(this.available.indexOf(p),1);
             p.upgrade(pl);
+            this.usage[p] = pl;
         }
     };
     this.draw = function(){
-        for (var i=0; i<this.instock.length; i++) {
-            this.instock[i].draw();
+        for (var i=0; i<this.available.length; i++) {
+            this.available[i].draw();
         }
     };
     this.move = function(){
-        var x = this.instock.length;
-        if (Math.random() < 1.0/(100. + (x+2)*(x+2))) {
+        var x = this.available.length;
+        if (Math.random() < 1.0/(10. + (x+2)*(x+2))) {
             this.add();
         }
-        for (var i=0; i<this.instock.length; i++) {
-            this.instock[i].move();
+        for (var i=0; i<this.available.length; i++) {
+            this.available[i].move();
         }
         for (var i=this.taken.length-1; i>=0; i--) {
             var p = this.taken[i];
             p.move();
-            if (null === this.owner) {
+            if (p.finished()) {
+                var pl = this.usage[p];
+                p.release(pl);
                 this.taken.splice(i,1);
             }
         }
@@ -317,40 +310,34 @@ function PowerUps() {
 }
 
 function PowerUpSpeed() {
-    this.owner = null;
     this.img = new Image();
     this.img.src = "img/Brain-Games-red.png";
     this.radius = 16;
-    this.age = 0;
+    this.age = Number.MIN_VALUE;
     this.x = (Math.random()-0.5)*(board.w-2*this.radius);
     this.y = (Math.random()-0.5)*(board.h-2*this.radius);
     this.draw = function(){
         c.drawImage(this.img, this.x - this.radius + cw2, this.y - this.radius + ch2, 2*this.radius, 2*this.radius);
     };
+    this.finished = function() {
+        return this.age >= 100;
+    };
     this.move = function(){
-        if (null === this.owner) {
-            return;
-        }
         this.age += 1;
-        if (this.age >= 1000) {
-            this.release();
-        }
     };
     this.upgrade = function(pl) {
-        this.owner = pl;
-        pl.size *= 1.5;
+        pl.size *= 2;
+        this.age = 0;
     };
-    this.release = function() {
-        var pl = this.owner;
-        pl.size *= 1.0/1.5;
-        this.owner = null;
+    this.release = function(pl) {
+        pl.size *= 0.5;
     };
 }
 
 function Background() {
     this.draw = function(){
         c.fillStyle = "black";
-        c.fillRect(0,0,canvas.width,canvas.height);
+        c.fillRect(0, 0, canvas.width,canvas.height);
     };
     this.move = function(){};
 }
@@ -371,8 +358,6 @@ function GameOver(){
     this.draw = function(){
         c.textAlign = "center";
         c.fillStyle = "white";
-        c.font = "20px pixelfont";
-        c.fillText("Final score: " + player.score, cw2, 20);
         c.font = "50px pixelfont";
         c.fillText("GAME OVER", cw2, ch2);
         c.font = "30px pixelfont";

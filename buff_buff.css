@@ -4,16 +4,16 @@
 }
 
 body {
-    background-color: black;
+    background-color: darkgrey;
+    margin: 0;
 }
 
 canvas {
     display: block;
-    margin: 0px 0px;
-    width: 800px;
+    margin: 0px auto;
+    //width: 800px;
     //position: absolute;
     //left: 0px;
-    //top: 0px;
 }
 
 #board {
