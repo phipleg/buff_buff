@@ -10,15 +10,16 @@ window.onload = function(){
     state = 'init';
     transition('');
     run();
+
+    window.addEventListener("keydown", on_keydown, true);
+    window.addEventListener("keyup", on_keyup, true);
 }
 
-window.addEventListener("keydown", on_keydown, true);
-window.addEventListener("keyup", on_keyup, true);
 
 function transition(input) {
     // console.log({'state': state, 'input': input});
     if ('init' === state) {
-        if ('' == input) {
+        if ('' === input) {
             background = new Background();
             board = new Board();
             player = new Player();
@@ -130,23 +131,34 @@ function Player(){
     this.up_pressed = false;
     this.down_pressed = false;
     this.name = "Player";
-    this.color = "red";
+    this.strokeStyle = "rgba(255,0,0,0.9)";
     this.alive = true;
     this.score = 0;
-    this.size = 2;
+    this.size = 20;
     this.angle_delta = 1.0/64;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
     this.x = (Math.random()-0.5)*(board.w-32);
     this.y = (Math.random()-0.5)*(board.h-32);
+    this.angle = 0;
+    this.x = 0;
+    this.y = 0;
     this.prev_x = this.x;
     this.prev_y = this.y;
     this.transparent = 0;
+    this.has_hole = false;
+    this.has_track = false;
     this.draw = function(){
         c.beginPath();
         c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 0.5*Math.PI, this.angle + 0.5*Math.PI, false);
-        c.fillStyle = "yellow";
-        c.fill();
+        if (this.has_track) {
+            c.fillStyle = "yellow";
+            c.fill();
+        } else {
+            c.lineTo(this.x+cw2 + this.size*Math.cos(this.angle-0.5*Math.PI), this.y+ch2+this.size*Math.sin(this.angle-0.5*Math.PI));
+            c.strokeStyle = "yellow";
+            c.stroke();
+        }
     }
     this.move = function(){
         if (!this.alive) {
@@ -161,15 +173,15 @@ function Player(){
         var new_x = clip(this.x+vx, -board.w/2, board.w/2);
         var new_y = clip(this.y+vy, -board.h/2, board.h/2);
 
-        var has_hole = board.time % 100 >= 80;
-        var has_track = !(has_hole || this.transparent > 0);
+        this.has_hole = board.time % 100 >= 80;
+        this.has_track = !(this.has_hole || this.transparent > 0);
         var hit = this.collision_detection(new_x, new_y);
-        if (has_track) {
+        if (this.has_track) {
             if (hit) {
                 this.alive = false;
-                return;
+                //return;
             }
-            board.add_line(this.prev_x, this.prev_y, this.x, this.y, new_x, new_y, 2* this.size);
+            board.add_line(this.prev_x, this.prev_y, this.x, this.y, new_x, new_y, 2* this.size, this.strokeStyle);
         }
         this.prev_x = this.x;
         this.prev_y = this.y;
@@ -177,17 +189,17 @@ function Player(){
         this.y = new_y;
     };
     this.collision_detection = function(new_x,new_y) {
-        var dist = this.size+1;
-        for (var t=-1; t<=1; t+=1){
-            var beta = this.angle + t * Math.PI/2 * 0.8;
+        var dist = this.size;
+        var points = [];
+        for (var t=-1; t<=1; t+=0.2){
+            var beta = this.angle + t* Math.PI/2 * 1;
             var sx = new_x + Math.cos(beta) * dist;
             var sy = new_y + Math.sin(beta) * dist;
-            var hit = !board.is_empty_at(sx, sy);
-            if (hit) {
-                return hit;
-            }
+            points.push(Math.floor(sx));
+            points.push(Math.floor(sy));
             powerups.pick_from(this, sx, sy);
         }
+        return !board.is_empty_at(points);
     };
 }
 
@@ -201,44 +213,73 @@ function Board() {
     this.space_ctx = this.space_canvas.getContext("2d");
     this.draw = function() {
         var ctx = this.space_ctx;
-        ctx.beginPath();
-        ctx.lineWidth="4";
-        ctx.strokeStyle="yellow";
-        ctx.rect(0, 0, this.w, this.h);
-        ctx.stroke();
         var imDat = ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
     };
     this.move = function(){
         this.time += 1;
+        this.add_border();
     };
-    this.add_circle = function(x,y,radius) {
-        var c = board.space_ctx;
-        c.beginPath();
-        c.arc(x+this.w/2, y+this.h/2, radius, 0.0, 2.* Math.PI, false);
-        c.fillStyle = "red";
-        c.fill();
-    };
-    this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth) {
-        var c = board.space_ctx;
-        c.beginPath();
-        c.lineWidth = lineWidth;
-        c.moveTo(x1+this.w/2,y1+this.h/2);
-        c.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
-        c.strokeStyle = 'red';
-        c.stroke();
-    };
-    this.is_empty_at = function(x,y) {
-        var ix = clip(x+this.w/2, 0, this.w);
-        var iy = clip(y+this.h/2, 0, this.h);
+    this.add_border = function() {
         var ctx = this.space_ctx;
-        var id = ctx.getImageData(ix,iy,1,1);
-        //ctx.fillStyle = "rgb(0,255,0)";
-        //ctx.fillRect(ix,iy,1,1);
-        if (id.data[0] > 0 || id.data[1] > 0 || id.data[2] > 0) {
-            return false;
+        ctx.beginPath();
+        ctx.lineWidth="4";
+        ctx.strokeStyle="yellow";
+        ctx.rect(0, 0, this.w, this.h);
+        ctx.stroke();
+    };
+    this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
+        var ctx = board.space_ctx;
+        ctx.beginPath();
+        ctx.lineWidth = lineWidth;
+        ctx.moveTo(x1+this.w/2,y1+this.h/2);
+        ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
+        ctx.strokeStyle = strokeStyle;
+        ctx.stroke();
+    };
+    this.is_empty_at = function(points) {
+        var x1=board.w; x2=0; y1=board.h; y2=0;
+        for (var i=0; i<points.length-1; i+=2) {
+            var x = points[i];
+            var y = points[i+1];
+            var tx = Math.floor(clip(x+this.w/2, 0, this.w));
+            var ty = Math.floor(clip(y+this.h/2, 0, this.h));
+            x1 = Math.min(x1, tx);
+            x2 = Math.max(x2, tx);
+            y1 = Math.min(y1, ty);
+            y2 = Math.max(y2, ty);
         }
-        return true;
+        var ctx = this.space_ctx;
+        var w = x2-x1+1;
+        var h = y2-y1+1;
+        var imDat = ctx.getImageData(x1,y1,w,h);
+        hits = [];
+        for (var i=0; i<points.length-1; i+=2) {
+            var x = points[i];
+            var y = points[i+1];
+            var tx = Math.floor(clip(x+this.w/2, 0, this.w));
+            var ty = Math.floor(clip(y+this.h/2, 0, this.h));
+            var j = (tx-x1)+(ty-y1)*w;
+            var r = imDat.data[4*j+0];
+            var g = imDat.data[4*j+1];
+            var b = imDat.data[4*j+2];
+            if (r+g+b>0) {
+                hits.push([x,y,r,g,b]);
+            }
+        }
+        imDat.data = null;
+        if (false && hits.length > 0) {
+            for (var i=0; i<hits.length; i++) {
+                var x = hits[i][0];
+                var y = hits[i][1];
+                var tx = Math.floor(clip(x+this.w/2, 0, this.w));
+                var ty = Math.floor(clip(y+this.h/2, 0, this.h));
+                //ctx.strokeStyle = "rgb(0,255,0)";
+                //ctx.rect(tx,ty,0.2,0.2);
+                //ctx.stroke();
+            }
+        } 
+        return hits.length == 0;
     };
 }
 
@@ -246,24 +287,8 @@ function PowerUps() {
     this.available = [];
     this.taken = [];
     this.usage = {};
-    this.select = function(x,y, other_radius) {
-        var result = [];
-        if (!other_radius) {
-            other_radius = 0;
-        }
-        for (var i=this.available.length-1; i>=0; i--) {
-            var p = this.available[i];
-            var dx = x - p.x;
-            var dy = y - p.y;
-            var dist = Math.sqrt(dx*dx+dy*dy) - p.radius - other_radius;
-            if (dist <= 0) {
-                result.push(p);
-            }
-        }
-        return result;
-    };
     this.add = function() {
-        var attempts = 10;
+        var attempts = 0;
         for (i=0; i<attempts; i++) {
             var p;
             switch(getRandomInt(5)) {
@@ -281,6 +306,22 @@ function PowerUps() {
                 return;
             }
         }
+    };
+    this.select = function(x,y, other_radius) {
+        var result = [];
+        if (!other_radius) {
+            other_radius = 0;
+        }
+        for (var i=this.available.length-1; i>=0; i--) {
+            var p = this.available[i];
+            var dx = x - p.x;
+            var dy = y - p.y;
+            var dist = Math.sqrt(dx*dx+dy*dy) - p.radius - other_radius;
+            if (dist <= 0) {
+                result.push(p);
+            }
+        }
+        return result;
     };
     this.pick_from = function(pl, x, y) {
         var result = this.select(x,y);
@@ -482,5 +523,5 @@ function getRandomInt(n) {
 }
 
 function clip(x, min, max) {
-    return Math.max(min, Math.min(max,x));
+    return Math.max(min, Math.min(max-1,x));
 }
