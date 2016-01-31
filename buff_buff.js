@@ -11,8 +11,8 @@ window.onload = function(){
     transition();
     run();
 
-    window.addEventListener("keydown", on_keydown, true);
-    window.addEventListener("keyup", on_keyup, true);
+    window.addEventListener("keydown", function (e) { transition(e.which, true); }, true);
+    window.addEventListener("keyup", function (e) { transition(e.which, false); }, true);
 }
 
 keyCodes = {
@@ -27,7 +27,7 @@ keyCodes = {
 function transition(keyCode, keydown) {
     var input = null;
     if (keyCode !== undefined) {
-        input = kc[keyCode];
+        input = keyCodes[keyCode];
         if (!keydown) {
             input += '_up';
         }
@@ -42,13 +42,14 @@ function transition(keyCode, keydown) {
     if ('init' === state) {
         background = new Background();
         board = new Board();
-        players = new PlayerList();
         info = new Info();
         powerups = new PowerUps();
         gamestart = new GameStart();
         gameready = new GameReady();
         gameover = new GameOver();
         gamepause = new GamePause();
+
+        players = new PlayerList();
         state = 'menu';
         universe = [gamestart, background];
     } else if ('menu' === state) {
@@ -83,6 +84,10 @@ function transition(keyCode, keydown) {
                 }
             }
         }
+            for (var i = universe.length-1; i >= 0; i--) {
+                object = universe[i];
+                object.move();
+            }
     } else if ('pause' === state) {
         if ('esc' === input) {
             state = 'init';
@@ -101,26 +106,17 @@ function transition(keyCode, keydown) {
 }
 
 
-function on_keydown(e) {
-    transition(e.which, true);
-}
-
-function on_keyup(e) {
-    transition(e.which, false);
-}
-
-
 function run() {
     setInterval(function() {
-        for (var i = universe.length-1; i >= 0; i--) {
-            object = universe[i];
-            if (state === 'playing') {
-                object.move();
-            }
-            object.draw();
-        }
+        render();
         transition();
     }, 25);
+}
+
+function render() {
+    for (var i = universe.length-1; i >= 0; i--) {
+        universe[i].draw();
+    }
 }
 
 function Player(name, color){
@@ -189,7 +185,6 @@ function Player(name, color){
         }
         this.has_hole = board.time % 100 >= 80;
         this.has_track = !(this.has_hole || this.transparent > 0);
-        var prev_angle = this.angle;
         if (this.rectangular >= 1) {
             this.angle_delta = Math.PI/2;
         } else {
@@ -398,6 +393,11 @@ function Board() {
 
 function PlayerList() {
     this.list = [new Player('fred', 'red'), new Player('greenly', 'lightgreen')];
+    for (var i=0; i<this.list.length; i++) {
+        var pl = this.list[i];
+        pl.move();
+        pl.move();
+    }
     this.somebody_alive = function() {
         for (var i=0; i<this.list.length; i++) {
             if (this.list[i].alive) {
