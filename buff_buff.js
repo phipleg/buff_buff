@@ -8,77 +8,14 @@ window.onload = function(){
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
     state = 'init';
-    transition('');
+    transition();
     run();
 
     window.addEventListener("keydown", on_keydown, true);
     window.addEventListener("keyup", on_keyup, true);
 }
 
-
-function transition(input) {
-    // console.log({'state': state, 'input': input});
-    if ('init' === state) {
-        if ('' === input) {
-            background = new Background();
-            board = new Board();
-            player = new Player();
-            info = new Info();
-            powerups = new PowerUps();
-            gamestart = new GameStart();
-            gameready = new GameReady();
-            gameover = new GameOver();
-            gamepause = new GamePause();
-            state = 'menu';
-            universe = [gamestart, background];
-        }
-    } else if ('menu' === state) {
-        if ('enter' === input || 'space' === input) {
-            state = 'ready';
-            universe = [gameready, player, powerups, board, info, background];
-        }
-    } else if ('ready' === state) {
-        if ('enter' === input || 'space' === input) {
-            state = 'playing';
-            universe = [player, powerups, board, info, background];
-        }
-    } else if ('playing' === state) {
-        if ('step' === input) {
-            if (!player.alive) {
-                state = 'game_over';
-                universe = [gameover, player, powerups, board, info, background];
-            }
-        } else if ('esc' === input || 'enter' === input || 'space' === input) {
-            state = 'pause';
-            prev_universe = universe;
-            universe = [gamepause, player, powerups, board, info, background];
-        } else if ('left' === input) {
-            player.left_pressed = true;
-        } else if ('right' === input) {
-            player.right_pressed = true;
-        } else if ('up' === input) {
-            player.up_pressed = true;
-        } else if ('down' === input) {
-            player.down_pressed = true;
-        }
-    } else if ('pause' === state) {
-        if ('esc' === input) {
-            state = 'init';
-            transition('');
-        } else if ('enter' === input || 'space' === input) {
-            state = 'playing';
-            universe = prev_universe;
-        }
-    } else if ('game_over' === state) {
-        if ('enter' == input || 'space' == input) {
-            state = 'init';
-            transition('');
-        }
-    }
-
-}
-
-key_to_input = {
+kc = {
     37: 'left',
     39: 'right',
     81: 'up',
@@ -88,27 +25,83 @@ key_to_input = {
     27: 'esc'
 };
 
-function on_keydown(e) {
-    var key = e.which;
-    input = key_to_input[key];
-    if (null != input) {
-        transition(input);
-    } else {
-        console.log({'keydown': key});
+function transition(keyCode, keydown) {
+    var input = null;
+    if (keyCode !== undefined) {
+        input = kc[keyCode];
+        if (!keydown) {
+            input += '_up';
+        }
+        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
+    player_keys = {
+        37: { 'id': 0, 'direction': -1 },
+        39: { 'id': 0, 'direction': 1 }
+    };
+    if ('init' === state) {
+        background = new Background();
+        board = new Board();
+        players = new PlayerList();
+        info = new Info();
+        powerups = new PowerUps();
+        gamestart = new GameStart();
+        gameready = new GameReady();
+        gameover = new GameOver();
+        gamepause = new GamePause();
+        state = 'menu';
+        universe = [gamestart, background];
+    } else if ('menu' === state) {
+        if ('enter' === input || 'space' === input) {
+            state = 'ready';
+            universe = [gameready, players, powerups, board, info, background];
+        }
+    } else if ('ready' === state) {
+        if ('enter' === input || 'space' === input) {
+            state = 'playing';
+            universe = [players, powerups, board, info, background];
+        }
+    } else if ('playing' === state) {
+        if (null === input) {
+            if (!players.somebody_alive()) {
+                state = 'game_over';
+                universe = [gameover, players, powerups, board, info, background];
+            }
+        } else if ('esc' === input || 'enter' === input || 'space' === input) {
+            state = 'pause';
+            prev_universe = universe;
+            universe = [gamepause, players, powerups, board, info, background];
+        } else {
+            mapping = player_keys[keyCode];
+            if (mapping !== undefined) {
+                player = players.list[mapping['id']];
+                d = mapping['direction'];
+                player.direction = keydown ? d : 0.0;
+            }
+        }
+    } else if ('pause' === state) {
+        if ('esc' === input) {
+            state = 'init';
+            transition();
+        } else if ('enter' === input || 'space' === input) {
+            state = 'playing';
+            universe = prev_universe;
+        }
+    } else if ('game_over' === state) {
+        if ('enter' == input || 'space' == input) {
+            state = 'init';
+            transition();
+        }
+    }
+
+}
+
+
+function on_keydown(e) {
+    transition(e.which, true);
 }
 
 function on_keyup(e) {
-    var key = e.which;
-    if (37 == key) { // left
-        player.left_pressed = false;
-    } else if (39 == key) { // right
-        player.right_pressed = false;
-    } else if (81 == key) { // q
-        player.up_pressed = false;
-    } else if (87 == key) { // w
-        player.down_pressed = false;
-    }
+    transition(e.which, false);
 }
 
 
@@ -121,28 +114,22 @@ function run() {
             }
             object.draw();
         }
-        transition('step');
+        transition();
     }, 25);
 }
 
 function Player(){
-    this.left_pressed = false;
-    this.right_pressed = false;
-    this.up_pressed = false;
-    this.down_pressed = false;
     this.name = "Player";
     this.strokeStyle = "rgba(255,0,0,1.0)";
     this.alive = true;
     this.score = 0;
     this.size = 2;
+    this.direction = 0.0;
     this.angle_delta = 0.0;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
     this.x = (Math.random()-0.5)*(board.w-32);
     this.y = (Math.random()-0.5)*(board.h-32);
-    this.angle = 0;
-    this.x = 0;
-    this.y = 0;
     this.x1 = this.x;
     this.y1 = this.y;
     this.has_hole = false;
@@ -188,29 +175,25 @@ function Player(){
                 c.stroke();
             }
         }
-    }
+    };
     this.move = function(){
         if (!this.alive) {
             return;
         }
         this.has_hole = board.time % 100 >= 80;
         this.has_track = !(this.has_hole || this.transparent > 0);
-        var dsize = this.up_pressed ? 1.1 : (this.down_pressed ? 0.9 : 1);
-        this.size = this.size * dsize;
-        var direction = this.left_pressed ? -1 : (this.right_pressed ? 1 : 0);
         var prev_angle = this.angle;
         if (this.rectangular >= 1) {
             this.angle_delta = Math.PI/2;
         } else {
             this.angle_delta = Math.PI/16;
         }
-        var da = direction * this.angle_delta;
+        var da = this.direction * this.angle_delta;
         var dl = Math.abs(Math.sin(da)) * (this.size+1);
         if (this.rectangular >= 1) {
-            this.left_pressed = false;
-            this.right_pressed = false;
+            this.direction = 0.0;
         }
-        if (dl < this.v && (this.rectangular == 0 || direction == 0)) {
+        if (dl < this.v && (this.rectangular == 0 || this.direction == 0)) {
             dl = this.v;
         }
         this.angle += da;
@@ -399,6 +382,28 @@ function Board() {
     };
 }
 
+function PlayerList() {
+    this.list = [new Player()];
+    this.somebody_alive = function() {
+        for (var i=0; i<this.list.length; i++) {
+            if (this.list[i].alive) {
+                return true;
+            }
+        }
+        return false;
+    };
+    this.move = function() {
+        for (var i=0; i<this.list.length; i++) {
+            this.list[i].move();
+        }
+    };
+    this.draw = function() {
+        for (var i=0; i<this.list.length; i++) {
+            this.list[i].draw();
+        }
+    };
+}
+
 function PowerUps() {
     this.available = [];
     this.taken = [];
@@ -408,7 +413,6 @@ function PowerUps() {
         for (i=0; i<attempts; i++) {
             var p;
             var rnd = getRandomInt(8);
-            rnd = 7;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -462,7 +466,7 @@ function PowerUps() {
     };
     this.move = function(){
         var x = this.available.length;
-        if (Math.random() < 1.0/(10. + (x+2)*(x+2))) {
+        if (Math.random() < 1.0/(100. + (x+2)*(x+2))) {
             this.add();
         }
         for (var i=0; i<this.available.length; i++) {
@@ -620,11 +624,16 @@ function Background() {
 
 function Info(){
     this.draw = function(){
-        c.fillStyle = player.alive ? "white" : "grey";
         c.font = "16px pixelfont";
         c.textAlign = "left";
-        c.fillText("Score: " + player.score, cw2+board.w/2+4, 32);
-        c.fillText("Time: " + board.time, cw2+board.w/2+4, 64);
+        c.fillStyle = "white";
+        c.fillText("Time: " + board.time, cw2+board.w/2+4, 32);
+
+        for (var i=0; i<players.list.length; i++) {
+            var pl = players.list[i];
+            c.fillStyle = pl.alive ? "white" : "grey";
+            c.fillText("Score: " + pl.score, cw2+board.w/2+4, 64+32*i);
+        }
     };
     this.move = function(){}
 }
