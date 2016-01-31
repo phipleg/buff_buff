@@ -32,11 +32,13 @@ function transition(keyCode, keydown) {
         if (!keydown) {
             input += '_up';
         }
-        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
+        console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
     player_keys = {
         37: { 'id': 0, 'direction': 'left' },
-        39: { 'id': 0, 'direction': 'right' }
+        39: { 'id': 0, 'direction': 'right' },
+        81: { 'id': 1, 'direction': 'left' },
+        87: { 'id': 1, 'direction': 'right' }
     };
     if ('init' === state) {
         background = new Background();
@@ -122,9 +124,10 @@ function run() {
     }, 25);
 }
 
-function Player(){
-    this.name = "Player";
-    this.strokeStyle = "rgba(255,0,0,1.0)";
+function Player(name, color){
+    this.name = name;
+    this.color = color;
+    this.strokeStyle = color;
     this.alive = true;
     this.score = 0;
     this.size = 2;
@@ -395,7 +398,7 @@ function Board() {
 }
 
 function PlayerList() {
-    this.list = [new Player()];
+    this.list = [new Player('fred', 'red'), new Player('greenly', 'lightgreen')];
     this.somebody_alive = function() {
         for (var i=0; i<this.list.length; i++) {
             if (this.list[i].alive) {
@@ -643,7 +646,7 @@ function Info(){
 
         for (var i=0; i<players.list.length; i++) {
             var pl = players.list[i];
-            c.fillStyle = pl.alive ? "white" : "grey";
+            c.fillStyle = pl.alive ? pl.color : "grey";
             c.fillText("Score: " + pl.score, cw2+board.w/2+4, 64+32*i);
         }
     };
