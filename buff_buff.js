@@ -15,12 +15,11 @@ window.onload = function(){
     window.addEventListener("keyup", on_keyup, true);
 }
 
-kc = {
+keyCodes = {
     37: 'left',
     39: 'right',
     81: 'up',
     87: 'down',
-    13: 'enter',
     32: 'space',
     27: 'esc'
 };
@@ -53,12 +52,12 @@ function transition(keyCode, keydown) {
         state = 'menu';
         universe = [gamestart, background];
     } else if ('menu' === state) {
-        if ('enter' === input || 'space' === input) {
+        if ('space' === input) {
             state = 'ready';
             universe = [gameready, players, powerups, board, info, background];
         }
     } else if ('ready' === state) {
-        if ('enter' === input || 'space' === input) {
+        if ('space' === input) {
             state = 'playing';
             universe = [players, powerups, board, info, background];
         }
@@ -68,7 +67,7 @@ function transition(keyCode, keydown) {
                 state = 'game_over';
                 universe = [gameover, players, powerups, board, info, background];
             }
-        } else if ('esc' === input || 'enter' === input || 'space' === input) {
+        } else if ('esc' === input || 'space' === input) {
             state = 'pause';
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
@@ -88,12 +87,12 @@ function transition(keyCode, keydown) {
         if ('esc' === input) {
             state = 'init';
             transition();
-        } else if ('enter' === input || 'space' === input) {
+        } else if ('space' === input) {
             state = 'playing';
             universe = prev_universe;
         }
     } else if ('game_over' === state) {
-        if ('enter' == input || 'space' == input) {
+        if ('space' == input) {
             state = 'init';
             transition();
         }
