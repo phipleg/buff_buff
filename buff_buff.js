@@ -35,8 +35,8 @@ function transition(keyCode, keydown) {
         //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
     player_keys = {
-        37: { 'id': 0, 'direction': -1 },
-        39: { 'id': 0, 'direction': 1 }
+        37: { 'id': 0, 'direction': 'left' },
+        39: { 'id': 0, 'direction': 'right' }
     };
     if ('init' === state) {
         background = new Background();
@@ -75,7 +75,11 @@ function transition(keyCode, keydown) {
             if (mapping !== undefined) {
                 player = players.list[mapping['id']];
                 d = mapping['direction'];
-                player.direction = keydown ? d : 0.0;
+                if ('left' == d) {
+                    player.to_left = keydown;
+                } else if ('right' == d) {
+                    player.to_right = keydown;
+                }
             }
         }
     } else if ('pause' === state) {
@@ -124,7 +128,8 @@ function Player(){
     this.alive = true;
     this.score = 0;
     this.size = 2;
-    this.direction = 0.0;
+    this.to_left = false;
+    this.to_right = false;
     this.angle_delta = 0.0;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
@@ -188,12 +193,19 @@ function Player(){
         } else {
             this.angle_delta = Math.PI/16;
         }
-        var da = this.direction * this.angle_delta;
+        var direction = 0;
+        if (this.to_left) {
+            direction -= 1;
+        }
+        if (this.to_right) {
+            direction += 1;
+        }
+        var da = direction * this.angle_delta;
         var dl = Math.abs(Math.sin(da)) * (this.size+1);
         if (this.rectangular >= 1) {
-            this.direction = 0.0;
+            direction = 0;
         }
-        if (dl < this.v && (this.rectangular == 0 || this.direction == 0)) {
+        if (dl < this.v && (this.rectangular == 0 || direction == 0)) {
             dl = this.v;
         }
         this.angle += da;
