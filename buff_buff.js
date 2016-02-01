@@ -48,7 +48,6 @@ function transition(keyCode, keydown) {
         gameready = new GameReady();
         gameover = new GameOver();
         gamepause = new GamePause();
-
         players = new PlayerList();
         state = 'menu';
         universe = [gamestart, background];
@@ -124,6 +123,7 @@ function Player(name, color){
     this.color = color;
     this.strokeStyle = color;
     this.alive = true;
+    this.hit = false;
     this.score = 0;
     this.size = 2;
     this.to_left = false;
@@ -191,6 +191,7 @@ function Player(name, color){
         return acc;
     };
     this.move = function(){
+        this.hit = false;
         if (!this.alive) {
             return;
         }
@@ -236,11 +237,11 @@ function Player(name, color){
             y0 = clip(y0, -board.h/2, board.h/2);
             }
         }
-        var hit = this.collision_detection(x0, y0);
+        this.hit = this.has_track && this.collision_detection(x0, y0);
+        if (this.hit) {
+            this.alive = false;
+        }
         if (this.has_track) {
-            if (hit) {
-                this.alive = false;
-            }
             if (jump) {
                 board.add_line(x0, y0, x0, y0, x0, y0, 2* this.size, this.strokeStyle);
             } else {
@@ -415,7 +416,19 @@ function PlayerList() {
     };
     this.move = function() {
         for (var i=0; i<this.list.length; i++) {
-            this.list[i].move();
+            var pl = this.list[i];
+            pl.move();
+        }
+        for (var i=0; i<this.list.length; i++) {
+            var pl = this.list[i];
+            if (pl.hit) {
+                for (var j=0; j<this.list.length; j++) {
+                    other = this.list[j];
+                    if (other.alive) {
+                        other.score += 1;
+                    }
+                }
+            }
         }
     };
     this.draw = function() {
@@ -650,8 +663,10 @@ function Info(){
         c.fillStyle = "white";
         c.fillText("Time " + board.time, cw2+board.w/2+4, 32);
 
-        for (var i=0; i<players.list.length; i++) {
-            var pl = players.list[i];
+        scored = players.list.slice();
+        scored.sort(function(pl1, pl2) { return pl2.score - pl1.score; });
+        for (var i=0; i<scored.length; i++) {
+            var pl = scored[i];
             c.fillStyle = pl.alive ? pl.color : "grey";
             c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+32*i);
         }
