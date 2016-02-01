@@ -241,22 +241,23 @@ function Player(name, color){
         if (this.hit) {
             this.alive = false;
         }
-        if (this.has_track) {
-            if (jump) {
-                board.add_line(x0, y0, x0, y0, x0, y0, 2* this.size, this.strokeStyle);
-            } else {
-                board.add_line(this.x1, this.y1, this.x, this.y, x0, y0, 2* this.size, this.strokeStyle);
-            }
-        }
+        var x2, y2;
         if (jump) {
+            x2 = x0;
+            y2 = x0;
             this.x1 = x0;
             this.y1 = y0;
         } else {
+            x2 = this.x1;
+            y2 = this.y1;
             this.x1 = this.x;
             this.y1 = this.y;
         }
         this.x = x0;
         this.y = y0;
+        if (this.has_track) {
+            board.add_line(x2, y2, this.x1, this.y1, this.x, this.y, 2* this.size, this.strokeStyle);
+        }
     };
     this.surface_points = function(new_x, new_y) {
         var points = [];
@@ -298,6 +299,45 @@ function Player(name, color){
             powerups.pick_from(this, points[i], points[i+1]);
         }
         return !board.is_empty_at(points);
+    };
+}
+
+function PlayerList() {
+    this.list = [new Player('fred', 'red'), new Player('greenly', 'lightgreen')];
+    for (var i=0; i<this.list.length; i++) {
+        var pl = this.list[i];
+        pl.move();
+        pl.move();
+    }
+    this.somebody_alive = function() {
+        for (var i=0; i<this.list.length; i++) {
+            if (this.list[i].alive) {
+                return true;
+            }
+        }
+        return false;
+    };
+    this.move = function() {
+        for (var i=0; i<this.list.length; i++) {
+            var pl = this.list[i];
+            pl.move();
+        }
+        for (var i=0; i<this.list.length; i++) {
+            var pl = this.list[i];
+            if (pl.hit) {
+                for (var j=0; j<this.list.length; j++) {
+                    other = this.list[j];
+                    if (other.alive) {
+                        other.score += 1;
+                    }
+                }
+            }
+        }
+    };
+    this.draw = function() {
+        for (var i=0; i<this.list.length; i++) {
+            this.list[i].draw();
+        }
     };
 }
 
@@ -399,44 +439,6 @@ function Board() {
     };
 }
 
-function PlayerList() {
-    this.list = [new Player('fred', 'red'), new Player('greenly', 'lightgreen')];
-    for (var i=0; i<this.list.length; i++) {
-        var pl = this.list[i];
-        pl.move();
-        pl.move();
-    }
-    this.somebody_alive = function() {
-        for (var i=0; i<this.list.length; i++) {
-            if (this.list[i].alive) {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.move = function() {
-        for (var i=0; i<this.list.length; i++) {
-            var pl = this.list[i];
-            pl.move();
-        }
-        for (var i=0; i<this.list.length; i++) {
-            var pl = this.list[i];
-            if (pl.hit) {
-                for (var j=0; j<this.list.length; j++) {
-                    other = this.list[j];
-                    if (other.alive) {
-                        other.score += 1;
-                    }
-                }
-            }
-        }
-    };
-    this.draw = function() {
-        for (var i=0; i<this.list.length; i++) {
-            this.list[i].draw();
-        }
-    };
-}
 
 function PowerUps() {
     this.available = [];
