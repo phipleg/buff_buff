@@ -31,7 +31,7 @@ function transition(keyCode, keydown) {
         if (!keydown) {
             input += '_up';
         }
-        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
+        console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
     player_keys = {
         37: { 'id': 0, 'direction': 'left' },
@@ -53,28 +53,29 @@ function transition(keyCode, keydown) {
         universe = [gamestart, background];
     } else if ('menu' === state) {
         if ('space' === input) {
-            state = 'ready';
+            players.deploy();
             universe = [gameready, players, powerups, board, info, background];
+            state = 'ready';
         }
     } else if ('ready' === state) {
         if ('space' === input) {
-            state = 'playing';
             universe = [players, powerups, board, info, background];
+            state = 'playing';
         }
     } else if ('playing' === state) {
         if (null === input) {
-            if (!players.somebody_alive()) {
-                state = 'game_over';
-                universe = [gameover, players, powerups, board, info, background];
-            }
-            for (var i = universe.length-1; i >= 0; i--) {
-                object = universe[i];
-                object.move();
+            if (1 >= players.count_alive()) {
+                if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
+                    universe = [gameover, players, powerups, board, info, background];
+                    state = 'game_over';
+                } else {
+                    state = 'round_over';
+                }
             }
         } else if ('esc' === input || 'space' === input) {
-            state = 'pause';
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
+            state = 'pause';
         } else {
             mapping = player_keys[keyCode];
             if (mapping !== undefined) {
@@ -90,18 +91,27 @@ function transition(keyCode, keydown) {
     } else if ('pause' === state) {
         if ('esc' === input) {
             state = 'init';
-            transition();
         } else if ('space' === input) {
-            state = 'playing';
             universe = prev_universe;
+            state = 'playing';
         }
     } else if ('game_over' === state) {
         if ('space' == input) {
             state = 'init';
-            transition();
+        }
+    } else if ('round_over' === state) {
+        if ('space' == input) {
+            board.reset();
+            powerups.reset();
+            players.deploy();
+            state = 'ready';
         }
     }
 
+    for (var i = universe.length-1; i >= 0; i--) {
+        object = universe[i];
+        object.move();
+    }
 }
 
 
@@ -118,13 +128,13 @@ function render() {
     }
 }
 
-function Player(name, color){
+function Player(name, color, score){
     this.name = name;
     this.color = color;
+    this.score = score;
     this.strokeStyle = color;
     this.alive = true;
     this.hit = false;
-    this.score = 0;
     this.size = 2;
     this.to_left = false;
     this.to_right = false;
@@ -192,7 +202,7 @@ function Player(name, color){
     };
     this.move = function(){
         this.hit = false;
-        if (!this.alive) {
+        if ('playing' != state || !this.alive) {
             return;
         }
         this.has_hole = board.time % 100 >= 80;
@@ -237,7 +247,7 @@ function Player(name, color){
             y0 = clip(y0, -board.h/2, board.h/2);
             }
         }
-        this.hit = this.has_track && this.collision_detection(x0, y0);
+        this.hit = this.collision_detection(x0, y0) && this.has_track;
         if (this.hit) {
             this.alive = false;
         }
@@ -303,19 +313,30 @@ function Player(name, color){
 }
 
 function PlayerList() {
-    this.list = [new Player('fred', 'red'), new Player('greenly', 'lightgreen')];
-    for (var i=0; i<this.list.length; i++) {
-        var pl = this.list[i];
-        pl.move();
-        pl.move();
-    }
-    this.somebody_alive = function() {
+    this.list = [new Player('fred', 'red', 0), new Player('greenly', 'lightgreen', 0)];
+    this.goal = 10 * (this.list.length - 1);
+    this.deploy = function() {
+        for (var i=0; i<this.list.length; i++) {
+            var pl = this.list[i];
+            var q = new Player(pl.name, pl.color, pl.score);
+            q.move();
+            q.move();
+            this.list[i] = q;
+        }
+    };
+    this.sorted = function() {
+        var copy = this.list.slice();
+        copy.sort(function(pl1, pl2) { return pl2.score - pl1.score; });
+        return copy;
+    };
+    this.count_alive = function() {
+        var result = 0;
         for (var i=0; i<this.list.length; i++) {
             if (this.list[i].alive) {
-                return true;
+                result += 1;
             }
         }
-        return false;
+        return result;
     };
     this.move = function() {
         for (var i=0; i<this.list.length; i++) {
@@ -393,6 +414,11 @@ function Board() {
         ctx.fillStyle = 'black';
         ctx.fillRect(0,0,this.w,this.h);
     };
+    this.reset = function() {
+        this.clear();
+        this.time = 0;
+        this.endless = 0;
+    };
     this.is_empty_at = function(points) {
         var x1=board.w; x2=0; y1=board.h; y2=0;
         for (var i=0; i<points.length-1; i+=2) {
@@ -444,6 +470,11 @@ function PowerUps() {
     this.available = [];
     this.taken = [];
     this.usage = {};
+    this.reset = function() {
+        this.available = [];
+        this.taken = [];
+        this.usage = [];
+    };
     this.add = function() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
@@ -501,6 +532,9 @@ function PowerUps() {
         }
     };
     this.move = function(){
+        if (state != 'playing') {
+            return;
+        }
         var x = this.available.length;
         if (Math.random() < 1.0/(100. + (x+2)*(x+2))) {
             this.add();
@@ -663,27 +697,29 @@ function Info(){
         c.font = "16px pixelfont";
         c.textAlign = "left";
         c.fillStyle = "white";
-        c.fillText("Time " + board.time, cw2+board.w/2+4, 32);
-
-        scored = players.list.slice();
-        scored.sort(function(pl1, pl2) { return pl2.score - pl1.score; });
-        for (var i=0; i<scored.length; i++) {
-            var pl = scored[i];
-            c.fillStyle = pl.alive ? pl.color : "grey";
+        c.fillText("Goal " + players.goal, cw2+board.w/2+4, 32);
+        var sorted = players.sorted();
+        for (var i=0; i<sorted.length; i++) {
+            var pl = sorted[i];
+            c.fillStyle = pl.color;
             c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+32*i);
         }
     };
-    this.move = function(){}
+    this.move = function(){};
 }
 
 function GameOver(){
     this.draw = function(){
+        var winner = players.sorted()[0];
+        c.fillStyle = "rgba(0,0,0,0.5)";
+        c.fillRect(0, 0, canvas.width,canvas.height);
         c.textAlign = "center";
-        c.fillStyle = "white";
+        c.fillStyle = winner.color;
         c.font = "50px pixelfont";
-        c.fillText("GAME OVER", cw2, ch2);
+        c.fillText(winner.name, cw2, ch2-60);
+        c.fillText('wins!', cw2, ch2);
         c.font = "30px pixelfont";
-        c.fillText("press space to play again", cw2, ch2+130)
+        c.fillText("press space to play again", cw2, ch2+60)
     };
     this.move = function(){};
 }
