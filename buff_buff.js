@@ -257,8 +257,7 @@ function Player(name, color){
         this.x = x0;
         this.y = y0;
     };
-    this.collision_detection = function(new_x,new_y) {
-        var dist = this.size;
+    this.surface_points = function(new_x, new_y) {
         var points = [];
         if (this.rectangular >= 1) {
             var sx = new_x;
@@ -284,12 +283,16 @@ function Player(name, color){
         } else {
             for (var t=-1; t<=1; t+=0.2){
                 var beta = this.angle + t* Math.PI/2 * 0.8;
-                var sx = new_x + Math.cos(beta) * dist;
-                var sy = new_y + Math.sin(beta) * dist;
+                var sx = new_x + Math.cos(beta) * this.size;
+                var sy = new_y + Math.sin(beta) * this.size;
                 points.push(Math.floor(sx));
                 points.push(Math.floor(sy));
             }
         }
+        return points;
+    };
+    this.collision_detection = function(x,y) {
+        var points = this.surface_points(x,y);
         for (var i=0; i<points.length-1; i+=2) {
             powerups.pick_from(this, points[i], points[i+1]);
         }
@@ -645,12 +648,12 @@ function Info(){
         c.font = "16px pixelfont";
         c.textAlign = "left";
         c.fillStyle = "white";
-        c.fillText("Time: " + board.time, cw2+board.w/2+4, 32);
+        c.fillText("Time " + board.time, cw2+board.w/2+4, 32);
 
         for (var i=0; i<players.list.length; i++) {
             var pl = players.list[i];
             c.fillStyle = pl.alive ? pl.color : "grey";
-            c.fillText("Score: " + pl.score, cw2+board.w/2+4, 64+32*i);
+            c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+32*i);
         }
     };
     this.move = function(){}
