@@ -31,7 +31,7 @@ function transition(keyCode, keydown) {
         if (!keydown) {
             input += '_up';
         }
-        console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
+        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
     player_keys = {
         37: { 'id': 0, 'direction': 'left' },
@@ -68,6 +68,10 @@ function transition(keyCode, keydown) {
                 state = 'game_over';
                 universe = [gameover, players, powerups, board, info, background];
             }
+            for (var i = universe.length-1; i >= 0; i--) {
+                object = universe[i];
+                object.move();
+            }
         } else if ('esc' === input || 'space' === input) {
             state = 'pause';
             prev_universe = universe;
@@ -84,10 +88,6 @@ function transition(keyCode, keydown) {
                 }
             }
         }
-            for (var i = universe.length-1; i >= 0; i--) {
-                object = universe[i];
-                object.move();
-            }
     } else if ('pause' === state) {
         if ('esc' === input) {
             state = 'init';
@@ -164,6 +164,7 @@ function Player(name, color){
                 c.fillStyle = "yellow";
                 c.fill();
             } else {
+                c.lineWidth = "1";
                 c.strokeStyle = "yellow";
                 c.stroke();
             }
@@ -179,33 +180,36 @@ function Player(name, color){
             }
         }
     };
+    this.acceleration = function() {
+        var acc = 0;
+        if (this.to_left) {
+            acc -= 1;
+        }
+        if (this.to_right) {
+            acc += 1;
+        }
+        return acc;
+    };
     this.move = function(){
         if (!this.alive) {
             return;
         }
         this.has_hole = board.time % 100 >= 80;
         this.has_track = !(this.has_hole || this.transparent > 0);
+        var acc = this.acceleration();
         if (this.rectangular >= 1) {
             this.angle_delta = Math.PI/2;
+            this.to_left = false;
+            this.to_right = false;
         } else {
-            this.angle_delta = Math.PI/16;
+            this.angle_delta = Math.PI/32;
         }
-        var direction = 0;
-        if (this.to_left) {
-            direction -= 1;
-        }
-        if (this.to_right) {
-            direction += 1;
-        }
-        var da = direction * this.angle_delta;
+        var da = acc * this.angle_delta;
+        this.angle += da;
         var dl = Math.abs(Math.sin(da)) * (this.size+1);
-        if (this.rectangular >= 1) {
-            direction = 0;
-        }
-        if (dl < this.v && (this.rectangular == 0 || direction == 0)) {
+        if (dl < this.v && (this.rectangular == 0 || acc == 0)) {
             dl = this.v;
         }
-        this.angle += da;
         var dx = Math.cos(this.angle) * dl;
         var dy = Math.sin(this.angle) * dl;
         var x0 = this.x + dx;
