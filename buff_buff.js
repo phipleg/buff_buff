@@ -1,9 +1,9 @@
 window.onload = function(){
     canvas = document.getElementById("big");
     canvas.width = window.innerWidth * 0.9;
-    canvas.width = 800;
+    canvas.width = 900;
     canvas.height = window.innerHeight * 0.85;
-    canvas.height = 600;
+    canvas.height = 720;
     sounds = {};
     sounds['blast'] = function() { return new Audio("sounds/blast_5.mp3"); };
     sounds['crash'] = function() { return new Audio("sounds/car_crash.mp3"); };
@@ -36,7 +36,7 @@ function transition(keyCode, keydown) {
         if (!keydown) {
             input += '_up';
         }
-        console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
+        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
     }
     player_keys = {
         37: { 'id': 0, 'direction': 'left' },
@@ -201,6 +201,7 @@ function Player(name, color, score){
                 c.fillStyle = "yellow";
                 c.fill();
             } else {
+                c.lineWidth = "1";
                 c.strokeStyle = "yellow";
                 c.stroke();
             }
@@ -360,7 +361,7 @@ function PlayerList() {
 
 function Board() {
     this.space_canvas = document.getElementById("board");
-    this.w = 600;
+    this.w = 700;
     this.h = this.w;
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
@@ -375,7 +376,7 @@ function Board() {
         if (this.endless >= 1) {
             c.beginPath();
             c.lineWidth="4";
-            c.strokeStyle="rgba(255,255,0," + (0.5 + 0.5*Math.sin(this.time/10.0)) + ")";
+            c.strokeStyle="rgba(0,0,255," + (0.5 + 0.5*Math.sin(this.time/10.0)) + ")";
             c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
             c.stroke();
             this.sound.play();
@@ -493,11 +494,9 @@ function Board() {
 function PowerUps() {
     this.available = [];
     this.taken = [];
-    this.usage = {};
     this.reset = function() {
         this.available = [];
         this.taken = [];
-        this.usage = [];
     };
     this.add = function() {
         var attempts = 10;
@@ -530,10 +529,8 @@ function PowerUps() {
         }
         for (var i=this.available.length-1; i>=0; i--) {
             var p = this.available[i];
-            var dx = x - p.x;
-            var dy = y - p.y;
-            var dist = Math.sqrt(dx*dx+dy*dy) - p.radius - other_radius;
-            if (dist <= 0) {
+            var d = dist(x,y,p.x,p.y) - p.radius - other_radius;
+            if (d <= 0) {
                 result.push(p);
             }
         }
@@ -548,7 +545,7 @@ function PowerUps() {
             p.age = 0;
             p.upgrade(pl);
             sounds['howl_short']().play();
-            this.usage[p] = pl;
+            p.owner = pl;
         }
     };
     this.draw = function(){
@@ -571,7 +568,8 @@ function PowerUps() {
             var p = this.taken[i];
             p.move();
             if (p.finished()) {
-                var pl = this.usage[p];
+                var pl = p.owner;
+                p.owner = null;
                 p.release(pl);
                 this.taken.splice(i,1);
             }
@@ -579,37 +577,43 @@ function PowerUps() {
     };
 }
 
-function PowerUpBase() {
+function PowerUpBase(kind) {
+    if ('neutral' === kind) {
+        this.color = 'blue';
+    } else if ('positive' === kind) {
+        this.color = 'green';
+    }
     this.img = new Image();
+    this.owner = null;
     this.x = 0;
     this.y = 0;
     this.radius = 16;
-    this.age = Number.MIN_VALUE;
-    this.benevolent = true;
+    this.age = 0;
     this.draw = function(){
         c.beginPath();
         c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
-        c.fillStyle = this.benevolent ? "green" : "red";
+        c.fillStyle = this.color;
         c.fill();
-        var r = 16.0;
+        var r = this.radius;
         var w = 512/r;
         var h = 346/r;
         c.drawImage(this.img, this.x-w/2+cw2, this.y-h/2+ch2, w, h);
     };
     this.finished = function() {
-        var max_age = 500;
-        return this.age > max_age;
+        return this.age > 1;
     };
     this.move = function(){
-        this.age += 1;
+        if (null != this.owner) {
+            this.age += 1.0/500;
+        }
     };
 }
 
-PowerUpThicker.prototype = new PowerUpBase();
+
+PowerUpThicker.prototype = new PowerUpBase('positive');
 PowerUpThicker.prototype.constructor = PowerUpThicker;
 function PowerUpThicker() {
     this.img.src = "img/font-awesome/svg/plus26.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.size *= 2.0;
     };
@@ -618,11 +622,10 @@ function PowerUpThicker() {
     };
 }
 
-PowerUpThinner.prototype = new PowerUpBase();
+PowerUpThinner.prototype = new PowerUpBase('positive');
 PowerUpThinner.prototype.constructor = PowerUpSlower;
 function PowerUpThinner() {
     this.img.src = "img/font-awesome/svg/minus20.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.size *= 0.5;
     };
@@ -631,11 +634,10 @@ function PowerUpThinner() {
     };
 }
 
-PowerUpFaster.prototype = new PowerUpBase();
+PowerUpFaster.prototype = new PowerUpBase('positive');
 PowerUpFaster.prototype.constructor = PowerUpFaster;
 function PowerUpFaster() {
     this.img.src = "img/font-awesome/svg/lightning14.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.v *= 2.0;
     };
@@ -644,11 +646,10 @@ function PowerUpFaster() {
     };
 }
 
-PowerUpSlower.prototype = new PowerUpBase();
+PowerUpSlower.prototype = new PowerUpBase('positive');
 PowerUpSlower.prototype.constructor = PowerUpSlower;
 function PowerUpSlower() {
     this.img.src = "img/font-awesome/svg/bug6.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.v *= 0.5;
     };
@@ -657,23 +658,10 @@ function PowerUpSlower() {
     };
 }
 
-PowerUpClear.prototype = new PowerUpBase();
-PowerUpClear.prototype.constructor = PowerUpClear;
-function PowerUpClear() {
-    this.img.src = "img/font-awesome/svg/heart75.svg";
-    this.benevolent = true;
-    this.upgrade = function(pl) {
-        board.clear();
-    };
-    this.release = function(pl) {
-    };
-}
-
-PowerUpFlight.prototype = new PowerUpBase();
+PowerUpFlight.prototype = new PowerUpBase('positive');
 PowerUpFlight.prototype.constructor = PowerUpFlight;
 function PowerUpFlight() {
     this.img.src = "img/font-awesome/svg/plane12.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.transparent += 1;
     };
@@ -682,11 +670,10 @@ function PowerUpFlight() {
     };
 }
 
-PowerUpRect.prototype = new PowerUpBase();
+PowerUpRect.prototype = new PowerUpBase('positive');
 PowerUpRect.prototype.constructor = PowerUpRect;
 function PowerUpRect() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         pl.rectangular += 1;
     };
@@ -695,16 +682,26 @@ function PowerUpRect() {
     };
 }
 
-PowerUpFluffy.prototype = new PowerUpBase();
+PowerUpFluffy.prototype = new PowerUpBase('neutral');
 PowerUpFluffy.prototype.constructor = PowerUpFluffy;
 function PowerUpFluffy() {
     this.img.src = "img/font-awesome/svg/fluffy1.svg";
-    this.benevolent = true;
     this.upgrade = function(pl) {
         board.endless += 1;
     };
     this.release = function(pl) {
         board.endless -= 1;
+    };
+}
+
+PowerUpClear.prototype = new PowerUpBase('neutral');
+PowerUpClear.prototype.constructor = PowerUpClear;
+function PowerUpClear() {
+    this.img.src = "img/font-awesome/svg/heart75.svg";
+    this.upgrade = function(pl) {
+        board.clear();
+    };
+    this.release = function(pl) {
     };
 }
 
