@@ -241,26 +241,10 @@ function Player(name, color, score){
         var dy = Math.sin(this.angle) * dl;
         var x0 = this.x + dx;
         var y0 = this.y + dy;
+        var new_pos = board.project(x0, y0);
+        x0 = new_pos[0];
+        y0 = new_pos[1];
 
-        if (x0 < -board.w/2 || x0 >= board.w/2 || y0 < -board.h/2 || y0 >= board.h/2) {
-            if (board.endless >= 1) {
-                if (x0 < -board.w/2) {
-                    x0 += board.w;
-                }
-                if (x0 >= board.w/2) {
-                    x0 -= board.w;
-                }
-                if (y0 < -board.h/2) {
-                    y0 += board.h;
-                }
-                if (y0 >= board.h/2) {
-                    y0 -= board.h;
-                }
-            } else {
-                x0 = clip(x0, -board.w/2, board.w/2);
-                y0 = clip(y0, -board.h/2, board.h/2);
-            }
-        }
         this.hit = this.collision_detection(x0, y0) && this.has_track;
         if (this.hit) {
             this.alive = false;
@@ -438,7 +422,7 @@ function Board() {
         this.currentTime = 0;
     };
     this.is_empty_at = function(points) {
-        var x1=board.w; x2=0; y1=board.h; y2=0;
+        var x1=this.w; x2=0; y1=this.h; y2=0;
         for (var i=0; i<points.length-1; i+=2) {
             var x = points[i];
             var y = points[i+1];
@@ -480,6 +464,28 @@ function Board() {
             }
         }
         return hits.length == 0;
+    };
+    this.project = function(x, y) {
+        if (x < -this.w/2 || x >= this.w/2 || y < -this.h/2 || y >= this.h/2) {
+            if (this.endless >= 1) {
+                if (x < -this.w/2) {
+                    x += this.w;
+                }
+                if (x >= this.w/2) {
+                    x -= this.w;
+                }
+                if (y < -this.h/2) {
+                    y += this.h;
+                }
+                if (y >= this.h/2) {
+                    y -= this.h;
+                }
+            } else {
+                x = clip(x, -this.w/2, this.w/2);
+                y = clip(y, -this.h/2, this.h/2);
+            }
+        }
+        return [x, y];
     };
 }
 
