@@ -4,6 +4,10 @@ window.onload = function(){
     canvas.width = 800;
     canvas.height = window.innerHeight * 0.85;
     canvas.height = 600;
+    sounds = {};
+    sounds['blast'] = function() { return new Audio("sounds/blast_5.mp3"); };
+    sounds['forcefield'] = function() { return new Audio("sounds/forcefield.mp3"); };
+    sounds['howl_short'] = function() { return new Audio("sounds/howl_short.mp3"); };
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
@@ -64,14 +68,6 @@ function transition(keyCode, keydown) {
         }
     } else if ('playing' === state) {
         if (null === input) {
-            if (1 >= players.count_alive()) {
-                if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
-                    universe = [gameover, players, powerups, board, info, background];
-                    state = 'game_over';
-                } else {
-                    state = 'round_over';
-                }
-            }
         } else if ('esc' === input || 'space' === input) {
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
@@ -107,11 +103,6 @@ function transition(keyCode, keydown) {
             state = 'ready';
         }
     }
-
-    for (var i = universe.length-1; i >= 0; i--) {
-        object = universe[i];
-        object.move();
-    }
 }
 
 
@@ -119,6 +110,20 @@ function run() {
     setInterval(function() {
         render();
         transition();
+
+    for (var i = universe.length-1; i >= 0; i--) {
+        object = universe[i];
+        object.move();
+    }
+
+            if (1 >= players.count_alive()) {
+                if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
+                    universe = [gameover, players, powerups, board, info, background];
+                    state = 'game_over';
+                } else {
+                    state = 'round_over';
+                }
+            }
     }, 25);
 }
 
@@ -135,7 +140,7 @@ function Player(name, color, score){
     this.strokeStyle = color;
     this.alive = true;
     this.hit = false;
-    this.size = 2;
+    this.size = 3;
     this.to_left = false;
     this.to_right = false;
     this.angle_delta = 0.0;
@@ -250,6 +255,7 @@ function Player(name, color, score){
         this.hit = this.collision_detection(x0, y0) && this.has_track;
         if (this.hit) {
             this.alive = false;
+            sounds['blast']().play();
         }
         var x2, y2;
         if (jump) {
@@ -371,6 +377,7 @@ function Board() {
     this.time = 0;
     this.endless = 0;
     this.space_ctx = this.space_canvas.getContext("2d");
+    this.sound = sounds['forcefield']();
     this.draw = function() {
         var ctx = this.space_ctx;
         var imDat = ctx.getImageData(0,0,this.w,this.h);
@@ -381,6 +388,9 @@ function Board() {
             c.strokeStyle="rgba(255,255,0," + (0.5 + 0.5*Math.sin(this.time/10.0)) + ")";
             c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
             c.stroke();
+            this.sound.play();
+        } else {
+            this.sound.pause();
         }
     };
     this.move = function(){
@@ -418,6 +428,8 @@ function Board() {
         this.clear();
         this.time = 0;
         this.endless = 0;
+        this.sound.pause();
+        this.currentTime = 0;
     };
     this.is_empty_at = function(points) {
         var x1=board.w; x2=0; y1=board.h; y2=0;
@@ -523,6 +535,7 @@ function PowerUps() {
             this.available.splice(this.available.indexOf(p),1);
             p.age = 0;
             p.upgrade(pl);
+            sounds['howl_short']().play();
             this.usage[p] = pl;
         }
     };
