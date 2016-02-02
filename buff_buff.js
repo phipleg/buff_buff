@@ -6,6 +6,7 @@ window.onload = function(){
     canvas.height = 600;
     sounds = {};
     sounds['blast'] = function() { return new Audio("sounds/blast_5.mp3"); };
+    sounds['crash'] = function() { return new Audio("sounds/car_crash.mp3"); };
     sounds['forcefield'] = function() { return new Audio("sounds/forcefield.mp3"); };
     sounds['howl_short'] = function() { return new Audio("sounds/howl_short.mp3"); };
     c = canvas.getContext("2d");
@@ -155,6 +156,16 @@ function Player(name, color, score){
     this.transparent = 0;
     this.rectangular = 0;
     this.draw = function(){
+        if (!this.alive) {
+            if (this.hit) {
+                sounds['crash']().play();
+            }
+            c.beginPath();
+            c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
+            c.fillStyle = this.color;
+            c.fill();
+            return;
+        }
         if (this.rectangular >= 1) {
             c.beginPath();
             var x = this.x + cw2;
@@ -230,11 +241,9 @@ function Player(name, color, score){
         var dy = Math.sin(this.angle) * dl;
         var x0 = this.x + dx;
         var y0 = this.y + dy;
-        var jump = false;
 
         if (x0 < -board.w/2 || x0 >= board.w/2 || y0 < -board.h/2 || y0 >= board.h/2) {
             if (board.endless >= 1) {
-                jump = true;
                 if (x0 < -board.w/2) {
                     x0 += board.w;
                 }
@@ -248,31 +257,28 @@ function Player(name, color, score){
                     y0 -= board.h;
                 }
             } else {
-            x0 = clip(x0, -board.w/2, board.w/2);
-            y0 = clip(y0, -board.h/2, board.h/2);
+                x0 = clip(x0, -board.w/2, board.w/2);
+                y0 = clip(y0, -board.h/2, board.h/2);
             }
         }
         this.hit = this.collision_detection(x0, y0) && this.has_track;
         if (this.hit) {
             this.alive = false;
-            sounds['blast']().play();
         }
-        var x2, y2;
-        if (jump) {
-            x2 = x0;
-            y2 = x0;
-            this.x1 = x0;
-            this.y1 = y0;
-        } else {
-            x2 = this.x1;
-            y2 = this.y1;
-            this.x1 = this.x;
-            this.y1 = this.y;
-        }
+        var x2 = this.x1;
+        var y2 = this.y1;
+        this.x1 = this.x;
+        this.y1 = this.y;
         this.x = x0;
         this.y = y0;
         if (this.has_track) {
-            board.add_line(x2, y2, this.x1, this.y1, this.x, this.y, 2* this.size, this.strokeStyle);
+            d01 = dist(this.x, this.y, this.x1, this.y1);
+            d12 = dist(this.x1, this.y1, x2, y2);
+            if (d01 < 100 && d12 < 100) {
+                board.add_line(x2, y2, this.x1, this.y1, this.x, this.y, 2* this.size, this.strokeStyle);
+            } else {
+                board.add_line(this.x, this.y, this.x, this.y, this.x, this.y, 2* this.size, this.strokeStyle);
+            }
         }
     };
     this.surface_points = function(new_x, new_y) {
@@ -779,4 +785,10 @@ function getRandomInt(n) {
 
 function clip(x, min, max) {
     return Math.max(min, Math.min(max-1,x));
+}
+
+function dist(x1, y1, x2, y2) {
+    var dx = x1 - x2;
+    var dy = y1 - y2;
+    return Math.sqrt(dx*dx+dy*dy);
 }
