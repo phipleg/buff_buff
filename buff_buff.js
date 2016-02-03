@@ -1,7 +1,7 @@
 window.onload = function(){
     canvas = document.getElementById("big");
     canvas.width = window.innerWidth * 0.9;
-    canvas.width = 900;
+    canvas.width = 1024;
     canvas.height = window.innerHeight * 0.85;
     canvas.height = 720;
     sounds = {};
@@ -9,6 +9,7 @@ window.onload = function(){
     sounds['crash'] = function() { return new Audio("sounds/car_crash.mp3"); };
     sounds['forcefield'] = function() { return new Audio("sounds/forcefield.mp3"); };
     sounds['howl_short'] = function() { return new Audio("sounds/howl_short.mp3"); };
+    gameconfig = new GameConfig();
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
@@ -16,10 +17,269 @@ window.onload = function(){
     transition();
     run();
 
-    window.addEventListener("keydown", function (e) { transition(e.which, true); }, true);
-    window.addEventListener("keyup", function (e) { transition(e.which, false); }, true);
+    window.addEventListener("keydown", function (e) { e.preventDefault(); transition(e.which, true); }, true);
+    window.addEventListener("keyup", function (e) { e.preventDefault(); transition(e.which, false); }, true);
 }
+// names of known key codes (0-255)
 
+var keyboardMap = [
+  "", // [0]
+  "", // [1]
+  "", // [2]
+  "CANCEL", // [3]
+  "", // [4]
+  "", // [5]
+  "HELP", // [6]
+  "", // [7]
+  "BACK_SPACE", // [8]
+  "TAB", // [9]
+  "", // [10]
+  "", // [11]
+  "CLEAR", // [12]
+  "ENTER", // [13]
+  "ENTER_SPECIAL", // [14]
+  "", // [15]
+  "SHIFT", // [16]
+  "CONTROL", // [17]
+  "ALT", // [18]
+  "PAUSE", // [19]
+  "CAPS_LOCK", // [20]
+  "KANA", // [21]
+  "EISU", // [22]
+  "JUNJA", // [23]
+  "FINAL", // [24]
+  "HANJA", // [25]
+  "", // [26]
+  "ESCAPE", // [27]
+  "CONVERT", // [28]
+  "NONCONVERT", // [29]
+  "ACCEPT", // [30]
+  "MODECHANGE", // [31]
+  "SPACE", // [32]
+  "PAGE_UP", // [33]
+  "PAGE_DOWN", // [34]
+  "END", // [35]
+  "HOME", // [36]
+  "LEFT", // [37]
+  "UP", // [38]
+  "RIGHT", // [39]
+  "DOWN", // [40]
+  "SELECT", // [41]
+  "PRINT", // [42]
+  "EXECUTE", // [43]
+  "PRINTSCREEN", // [44]
+  "INSERT", // [45]
+  "DELETE", // [46]
+  "", // [47]
+  "0", // [48]
+  "1", // [49]
+  "2", // [50]
+  "3", // [51]
+  "4", // [52]
+  "5", // [53]
+  "6", // [54]
+  "7", // [55]
+  "8", // [56]
+  "9", // [57]
+  "COLON", // [58]
+  "SEMICOLON", // [59]
+  "LESS_THAN", // [60]
+  "EQUALS", // [61]
+  "GREATER_THAN", // [62]
+  "QUESTION_MARK", // [63]
+  "AT", // [64]
+  "A", // [65]
+  "B", // [66]
+  "C", // [67]
+  "D", // [68]
+  "E", // [69]
+  "F", // [70]
+  "G", // [71]
+  "H", // [72]
+  "I", // [73]
+  "J", // [74]
+  "K", // [75]
+  "L", // [76]
+  "M", // [77]
+  "N", // [78]
+  "O", // [79]
+  "P", // [80]
+  "Q", // [81]
+  "R", // [82]
+  "S", // [83]
+  "T", // [84]
+  "U", // [85]
+  "V", // [86]
+  "W", // [87]
+  "X", // [88]
+  "Y", // [89]
+  "Z", // [90]
+  "OS_KEY", // [91] Windows Key (Windows) or Command Key (Mac)
+  "", // [92]
+  "CONTEXT_MENU", // [93]
+  "", // [94]
+  "SLEEP", // [95]
+  "NUMPAD0", // [96]
+  "NUMPAD1", // [97]
+  "NUMPAD2", // [98]
+  "NUMPAD3", // [99]
+  "NUMPAD4", // [100]
+  "NUMPAD5", // [101]
+  "NUMPAD6", // [102]
+  "NUMPAD7", // [103]
+  "NUMPAD8", // [104]
+  "NUMPAD9", // [105]
+  "MULTIPLY", // [106]
+  "ADD", // [107]
+  "SEPARATOR", // [108]
+  "SUBTRACT", // [109]
+  "DECIMAL", // [110]
+  "DIVIDE", // [111]
+  "F1", // [112]
+  "F2", // [113]
+  "F3", // [114]
+  "F4", // [115]
+  "F5", // [116]
+  "F6", // [117]
+  "F7", // [118]
+  "F8", // [119]
+  "F9", // [120]
+  "F10", // [121]
+  "F11", // [122]
+  "F12", // [123]
+  "F13", // [124]
+  "F14", // [125]
+  "F15", // [126]
+  "F16", // [127]
+  "F17", // [128]
+  "F18", // [129]
+  "F19", // [130]
+  "F20", // [131]
+  "F21", // [132]
+  "F22", // [133]
+  "F23", // [134]
+  "F24", // [135]
+  "", // [136]
+  "", // [137]
+  "", // [138]
+  "", // [139]
+  "", // [140]
+  "", // [141]
+  "", // [142]
+  "", // [143]
+  "NUM_LOCK", // [144]
+  "SCROLL_LOCK", // [145]
+  "WIN_OEM_FJ_JISHO", // [146]
+  "WIN_OEM_FJ_MASSHOU", // [147]
+  "WIN_OEM_FJ_TOUROKU", // [148]
+  "WIN_OEM_FJ_LOYA", // [149]
+  "WIN_OEM_FJ_ROYA", // [150]
+  "", // [151]
+  "", // [152]
+  "", // [153]
+  "", // [154]
+  "", // [155]
+  "", // [156]
+  "", // [157]
+  "", // [158]
+  "", // [159]
+  "CIRCUMFLEX", // [160]
+  "EXCLAMATION", // [161]
+  "DOUBLE_QUOTE", // [162]
+  "HASH", // [163]
+  "DOLLAR", // [164]
+  "PERCENT", // [165]
+  "AMPERSAND", // [166]
+  "UNDERSCORE", // [167]
+  "OPEN_PAREN", // [168]
+  "CLOSE_PAREN", // [169]
+  "ASTERISK", // [170]
+  "PLUS", // [171]
+  "PIPE", // [172]
+  "HYPHEN_MINUS", // [173]
+  "OPEN_CURLY_BRACKET", // [174]
+  "CLOSE_CURLY_BRACKET", // [175]
+  "TILDE", // [176]
+  "", // [177]
+  "", // [178]
+  "", // [179]
+  "", // [180]
+  "VOLUME_MUTE", // [181]
+  "VOLUME_DOWN", // [182]
+  "VOLUME_UP", // [183]
+  "", // [184]
+  "", // [185]
+  "SEMICOLON", // [186]
+  "EQUALS", // [187]
+  "COMMA", // [188]
+  "MINUS", // [189]
+  "PERIOD", // [190]
+  "SLASH", // [191]
+  "BACK_QUOTE", // [192]
+  "", // [193]
+  "", // [194]
+  "", // [195]
+  "", // [196]
+  "", // [197]
+  "", // [198]
+  "", // [199]
+  "", // [200]
+  "", // [201]
+  "", // [202]
+  "", // [203]
+  "", // [204]
+  "", // [205]
+  "", // [206]
+  "", // [207]
+  "", // [208]
+  "", // [209]
+  "", // [210]
+  "", // [211]
+  "", // [212]
+  "", // [213]
+  "", // [214]
+  "", // [215]
+  "", // [216]
+  "", // [217]
+  "", // [218]
+  "OPEN_BRACKET", // [219]
+  "BACK_SLASH", // [220]
+  "CLOSE_BRACKET", // [221]
+  "QUOTE", // [222]
+  "", // [223]
+  "META", // [224]
+  "ALTGR", // [225]
+  "", // [226]
+  "WIN_ICO_HELP", // [227]
+  "WIN_ICO_00", // [228]
+  "", // [229]
+  "WIN_ICO_CLEAR", // [230]
+  "", // [231]
+  "", // [232]
+  "WIN_OEM_RESET", // [233]
+  "WIN_OEM_JUMP", // [234]
+  "WIN_OEM_PA1", // [235]
+  "WIN_OEM_PA2", // [236]
+  "WIN_OEM_PA3", // [237]
+  "WIN_OEM_WSCTRL", // [238]
+  "WIN_OEM_CUSEL", // [239]
+  "WIN_OEM_ATTN", // [240]
+  "WIN_OEM_FINISH", // [241]
+  "WIN_OEM_COPY", // [242]
+  "WIN_OEM_AUTO", // [243]
+  "WIN_OEM_ENLW", // [244]
+  "WIN_OEM_BACKTAB", // [245]
+  "ATTN", // [246]
+  "CRSEL", // [247]
+  "EXSEL", // [248]
+  "EREOF", // [249]
+  "PLAY", // [250]
+  "ZOOM", // [251]
+  "", // [252]
+  "PA1", // [253]
+  "WIN_OEM_CLEAR", // [254]
+  "" // [255]
+];
 keyCodes = {
     37: 'left',
     39: 'right',
@@ -31,12 +291,14 @@ keyCodes = {
 
 function transition(keyCode, keydown) {
     var input = null;
+    var key;
     if (keyCode !== undefined) {
         input = keyCodes[keyCode];
         if (!keydown) {
             input += '_up';
         }
         //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
+        key = keyboardMap[keyCode];
     }
     player_keys = {
         37: { 'id': 0, 'direction': 'left' },
@@ -46,26 +308,68 @@ function transition(keyCode, keydown) {
     };
     if ('init' === state) {
         background = new Background();
-        board = new Board();
-        info = new Info();
-        powerups = new PowerUps();
         gamestart = new GameStart();
-        gameready = new GameReady();
-        gameover = new GameOver();
-        gamepause = new GamePause();
-        players = new PlayerList();
         state = 'menu';
         universe = [gamestart, background];
     } else if ('menu' === state) {
         if ('space' === input) {
-            players.deploy();
-            universe = [gameready, players, powerups, board, info, background];
-            state = 'ready';
+            universe = [gameconfig, background];
+            state = 'config';
+        }
+    } else if ('config' === state) {
+        if ('space' === input) {
+            if (gameconfig.valid) {
+                board = new Board();
+                info = new Info();
+                powerups = new PowerUps();
+                gameready = new GameReady();
+                gameover = new GameOver();
+                gamepause = new GamePause();
+                players = new PlayerList();
+                players.deploy();
+                universe = [gameready, players, powerups, board, info, background];
+                state = 'ready';
+            }
+        } else if ('esc' === input) {
+            state = 'init';
+        } else {
+            if (null != key && keydown) {
+                if (['1', '2', '3', '4', '5', '6'].indexOf(key) != -1) {
+                    var idx = parseInt(key) -1;
+                    if (gameconfig.current_player != idx) {
+                        gameconfig.current_player = idx;
+                    } else {
+                        gameconfig.current_player = null;
+                        gameconfig.current_key = null;
+                    }
+                    gameconfig.current_key = 'left';
+                    var cfg = gameconfig.bindings[idx];
+                    cfg.type = null;
+                    cfg.left = null;
+                    cfg.right = null;
+                } else {
+                    if (null != gameconfig.current_player) {
+                        var cfg = gameconfig.bindings[gameconfig.current_player];
+                        if ('left' == gameconfig.current_key && gameconfig.is_key_free(key)) {
+                            cfg.left = key;
+                            gameconfig.current_key = 'right';
+                        } else if ('right' == gameconfig.current_key && gameconfig.is_key_free(key)) {
+                            cfg.right = key;
+                            gameconfig.current_key = null;
+                            cfg.type = 'human';
+                        }
+                    }
+                }
+                gameconfig.validate();
+            }
         }
     } else if ('ready' === state) {
         if ('space' === input) {
             universe = [players, powerups, board, info, background];
             state = 'playing';
+        } else if ('esc' == input) {
+            universe = [gameconfig, background];
+            state = 'config';
         }
     } else if ('playing' === state) {
         if (null === input) {
@@ -74,27 +378,30 @@ function transition(keyCode, keydown) {
             universe = [gamepause, players, powerups, board, info, background];
             state = 'pause';
         } else {
-            mapping = player_keys[keyCode];
-            if (mapping !== undefined) {
-                player = players.list[mapping['id']];
-                d = mapping['direction'];
-                if ('left' == d) {
-                    player.to_left = keydown;
-                } else if ('right' == d) {
-                    player.to_right = keydown;
+            for (var i=0; i<gameconfig.bindings.length; i++) {
+                var cfg = gameconfig.bindings[i];
+                var pl = players.by_name[cfg.name];
+                if (cfg.type === 'human') {
+                    if (key === cfg.left) {
+                        pl.to_left = keydown;
+                    } else if (key === cfg.right) {
+                        pl.to_right = keydown;
+                    }
                 }
             }
         }
     } else if ('pause' === state) {
         if ('esc' === input) {
-            state = 'init';
+            universe = [gameconfig, background];
+            state = 'config';
         } else if ('space' === input) {
             universe = prev_universe;
             state = 'playing';
         }
     } else if ('game_over' === state) {
         if ('space' == input) {
-            state = 'init';
+            universe = [gameconfig, background];
+            state = 'config';
         }
     } else if ('round_over' === state) {
         if ('space' == input) {
@@ -112,11 +419,11 @@ function run() {
         render();
         transition();
 
-    for (var i = universe.length-1; i >= 0; i--) {
-        object = universe[i];
-        object.move();
-    }
-
+        for (var i = universe.length-1; i >= 0; i--) {
+            object = universe[i];
+            object.move();
+        }
+        if ('playing' == state) {
             if (1 >= players.count_alive()) {
                 if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
                     universe = [gameover, players, powerups, board, info, background];
@@ -125,6 +432,7 @@ function run() {
                     state = 'round_over';
                 }
             }
+        }
     }, 25);
 }
 
@@ -310,16 +618,24 @@ function Player(name, color, score){
 }
 
 function PlayerList() {
-    this.list = [new Player('fred', 'red', 0), new Player('greenly', 'lightgreen', 0)];
-    this.goal = 10 * (this.list.length - 1);
+    this.list = [];
+    this.by_name = {};
     this.deploy = function() {
-        for (var i=0; i<this.list.length; i++) {
-            var pl = this.list[i];
-            var q = new Player(pl.name, pl.color, pl.score);
-            q.move();
-            q.move();
-            this.list[i] = q;
+        var old_by_name = this.by_name;
+        this.list = [];
+        this.by_name = {};
+        for (var i=0; i<gameconfig.bindings.length; i++) {
+            var cfg = gameconfig.bindings[i];
+            if ('human' == cfg.type) {
+                var col = rgba(cfg.color.r, cfg.color.g, cfg.color.b, 1.0);
+                var old_pl = old_by_name[cfg.name];
+                var score = old_pl ? old_pl.score : 0.0;
+                var pl = new Player(cfg.name, col, score);
+                this.list.push(pl);
+                this.by_name[pl.name] = pl;
+            }
         }
+        this.goal = 10 * (this.list.length - 1);
     };
     this.sorted = function() {
         var copy = this.list.slice();
@@ -775,9 +1091,76 @@ function GameStart(){
         c.textAlign = "center";
         c.fillStyle = "white";
         c.font = "100px pixelfont";
-        c.fillText("BUFF BUFF", cw2, ch2);
+        c.fillText("BUFF BUFF", cw2, ch2-50);
         c.font = "30px pixelfont";
-        c.fillText("press space to play", cw2, ch2+130)
+        c.fillText("press space to configure keys", cw2, ch2+100)
+        c.font = "10px pixelfont";
+        c.fillText("Sound by freesfx.co.uk", cw2, ch2*2 - 20)
+    };
+    this.move = function(){}
+}
+
+function GameConfig(){
+    this.current_player = null;
+    this.current_key = null;
+    this.valid = false;
+    this.bindings = [
+        {name: 'Fred', left: null, right: null, color: { r:255, g: 0, b: 0}, type: null},
+        {name: 'Greenly', left: null, right: null,color: { r:124, g: 252, b: 0}, type: null},
+        {name: 'Pinkney', left: null, right: null, color: { r:255, g: 105, b: 180}, type: null},
+        {name: 'Bluebell', left: null, right: null, color: { r:0, g: 191, b: 155}, type: null},
+        {name: 'Willem', left: null, right: null, color: { r:255, g: 140, b: 0}, type: null},
+        {name: 'Greydon', left: null, right: null, color: { r:119, g: 136, b: 153}, type: null}
+        ];
+    this.validate = function() {
+        var humans = 0;
+        for (var i=0; i< this.bindings.length; i++) {
+            cfg = this.bindings[i];
+            if (cfg.type == 'human') {
+                humans += 1;
+            }
+        }
+        this.valid = humans >= 2;
+    };
+    this.is_key_free = function(key) {
+        for (var i=0; i< this.bindings.length; i++) {
+            cfg = this.bindings[i];
+            if (cfg.left == key || cfg.right == key) {
+                return false;
+            }
+        }
+        return true;
+    };
+    this.draw = function(){
+        c.textAlign = "center";
+        c.fillStyle = "white";
+        c.font = "30px pixelfont";
+        c.fillText("Choose player keys", cw2, 100);
+        c.fillStyle = "white";
+        c.font = "30px pixelfont";
+        c.textAlign = "left";
+        c.fillText("Player", cw2-250, ch2-150);
+        c.fillText("Left", cw2+40, ch2-150);
+        c.fillText("Right", cw2+140, ch2-150);
+        for (var i=0; i< this.bindings.length; i++) {
+            cfg = this.bindings[i];
+            var color = cfg.color;
+            var active = cfg.type || this.current_player == i;
+            var alpha = active ? 1.0 : 0.3;
+            c.fillStyle = rgba(color.r, color.g, color.b, alpha);
+            c.fillText( (i+1) + " " + cfg.name, cw2-250, ch2-150 + 10 + (i+1)*40);
+            c.fillStyle = rgba(color.r, color.g, color.b, (cfg.left || this.current_key === 'left' && active) ? 1.0: 0.5);
+            c.fillText(cfg.left ? cfg.left : (active ? '?' : ''), cw2+40, ch2-150 + 10 + (i+1)*40);
+            c.fillStyle = rgba(color.r, color.g, color.b, (cfg.right || this.current_key === 'right' && active) ? 1: 0.5);
+            c.fillText(cfg.right ? cfg.right : (active ? '?' : ''), cw2+140, ch2-150 + 10 + (i+1)*40);
+        }
+        c.textAlign = "center";
+        c.fillStyle = "white";
+        if (this.valid) {
+            c.fillText("press space to play", cw2, ch2+230)
+        } else {
+            c.fillText("configure at least 2 players!", cw2, ch2+230)
+        }
     };
     this.move = function(){}
 }
@@ -794,4 +1177,8 @@ function dist(x1, y1, x2, y2) {
     var dx = x1 - x2;
     var dy = y1 - y2;
     return Math.sqrt(dx*dx+dy*dy);
+}
+
+function rgba(r,g,b,a) {
+    return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')';
 }
