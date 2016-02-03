@@ -9,7 +9,6 @@ window.onload = function(){
     sounds['crash'] = function() { return new Audio("sounds/car_crash.mp3"); };
     sounds['forcefield'] = function() { return new Audio("sounds/forcefield.mp3"); };
     sounds['howl_short'] = function() { return new Audio("sounds/howl_short.mp3"); };
-    gameconfig = new GameConfig();
     c = canvas.getContext("2d");
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
@@ -308,6 +307,7 @@ function transition(keyCode, keydown) {
     };
     if ('init' === state) {
         background = new Background();
+        gameconfig = new GameConfig();
         gamestart = new GameStart();
         state = 'menu';
         universe = [gamestart, background];
@@ -335,18 +335,20 @@ function transition(keyCode, keydown) {
         } else {
             if (null != key && keydown) {
                 if (['1', '2', '3', '4', '5', '6'].indexOf(key) != -1) {
-                    var idx = parseInt(key) -1;
-                    if (gameconfig.current_player != idx) {
-                        gameconfig.current_player = idx;
-                    } else {
-                        gameconfig.current_player = null;
-                        gameconfig.current_key = null;
+                    if ('right' != gameconfig.current_key) {
+                        var idx = parseInt(key) -1;
+                        if (gameconfig.current_player != idx) {
+                            gameconfig.current_player = idx;
+                        } else {
+                            gameconfig.current_player = null;
+                            gameconfig.current_key = null;
+                        }
+                        gameconfig.current_key = 'left';
+                        var cfg = gameconfig.bindings[idx];
+                        cfg.type = null;
+                        cfg.left = null;
+                        cfg.right = null;
                     }
-                    gameconfig.current_key = 'left';
-                    var cfg = gameconfig.bindings[idx];
-                    cfg.type = null;
-                    cfg.left = null;
-                    cfg.right = null;
                 } else {
                     if (null != gameconfig.current_player) {
                         var cfg = gameconfig.bindings[gameconfig.current_player];
@@ -1140,8 +1142,9 @@ function GameConfig(){
         c.font = "30px pixelfont";
         c.textAlign = "left";
         c.fillText("Player", cw2-250, ch2-150);
-        c.fillText("Left", cw2+40, ch2-150);
+        c.fillText("Left", cw2-40, ch2-150);
         c.fillText("Right", cw2+140, ch2-150);
+        c.font = "20px pixelfont";
         for (var i=0; i< this.bindings.length; i++) {
             cfg = this.bindings[i];
             var color = cfg.color;
@@ -1150,7 +1153,7 @@ function GameConfig(){
             c.fillStyle = rgba(color.r, color.g, color.b, alpha);
             c.fillText( (i+1) + " " + cfg.name, cw2-250, ch2-150 + 10 + (i+1)*40);
             c.fillStyle = rgba(color.r, color.g, color.b, (cfg.left || this.current_key === 'left' && active) ? 1.0: 0.5);
-            c.fillText(cfg.left ? cfg.left : (active ? '?' : ''), cw2+40, ch2-150 + 10 + (i+1)*40);
+            c.fillText(cfg.left ? cfg.left : (active ? '?' : ''), cw2-40, ch2-150 + 10 + (i+1)*40);
             c.fillStyle = rgba(color.r, color.g, color.b, (cfg.right || this.current_key === 'right' && active) ? 1: 0.5);
             c.fillText(cfg.right ? cfg.right : (active ? '?' : ''), cw2+140, ch2-150 + 10 + (i+1)*40);
         }
