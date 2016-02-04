@@ -896,11 +896,6 @@ function PowerUps() {
 }
 
 function PowerUpBase(kind) {
-    if ('neutral' === kind) {
-        this.color = 'blue';
-    } else if ('positive' === kind) {
-        this.color = 'green';
-    }
     this.img = new Image();
     this.owner = null;
     this.x = 0;
@@ -908,6 +903,11 @@ function PowerUpBase(kind) {
     this.radius = 16;
     this.age = 0;
     this.draw = function(){
+        if ('neutral' === kind) {
+            this.color = rgba(0,0,255, 0.8 + 0.2*Math.sin(board.time/10.0));
+        } else if ('positive' === kind) {
+            this.color = rgba(0,255,0, 0.8 + 0.2*Math.sin(board.time/10.0));
+        }
         c.beginPath();
         c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
         c.fillStyle = this.color;
