@@ -334,7 +334,7 @@ function transition(keyCode, keydown) {
             state = 'init';
         } else {
             if (null != key && keydown) {
-                if (['1', '2', '3', '4', '5', '6'].indexOf(key) != -1) {
+                if (['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(key) != -1) {
                     if ('right' != gameconfig.current_key) {
                         var idx = parseInt(key) -1;
                         if (gameconfig.current_player != idx) {
@@ -1107,12 +1107,14 @@ function GameConfig(){
     this.current_key = null;
     this.valid = false;
     this.bindings = [
-        {name: 'Fred', left: null, right: null, color: { r:255, g: 0, b: 0}, type: null},
-        {name: 'Greenly', left: null, right: null,color: { r:124, g: 252, b: 0}, type: null},
-        {name: 'Pinkney', left: null, right: null, color: { r:255, g: 105, b: 180}, type: null},
-        {name: 'Bluebell', left: null, right: null, color: { r:0, g: 191, b: 155}, type: null},
-        {name: 'Willem', left: null, right: null, color: { r:255, g: 140, b: 0}, type: null},
-        {name: 'Greydon', left: null, right: null, color: { r:119, g: 136, b: 153}, type: null}
+        {name: 'Fred', left: null, right: null, color: { r: 255, g: 0, b: 0}, type: null},
+        {name: 'Greenly', left: null, right: null,color: { r: 124, g: 252, b: 0}, type: null},
+        {name: 'Pinkney', left: null, right: null, color: { r: 255, g: 105, b: 180}, type: null},
+        {name: 'Bluebell', left: null, right: null, color: { r: 0, g: 191, b: 155}, type: null},
+        {name: 'Willem', left: null, right: null, color: { r: 255, g: 140, b: 0}, type: null},
+        {name: 'Greydon', left: null, right: null, color: { r: 119, g: 136, b: 153}, type: null},
+        {name: 'Goldy', left: null, right: null, color: { r: 218, g: 165, b: 32}, type: null},
+        {name: 'Slate', left: null, right: null, color: { r: 123, g: 104, b: 238}, type: null}
         ];
     this.validate = function() {
         var humans = 0;
@@ -1160,9 +1162,9 @@ function GameConfig(){
         c.textAlign = "center";
         c.fillStyle = "white";
         if (this.valid) {
-            c.fillText("press space to play", cw2, ch2+230)
+            c.fillText("press space to play", cw2, ch2+250)
         } else {
-            c.fillText("configure at least 2 players!", cw2, ch2+230)
+            c.fillText("configure at least 2 players!", cw2, ch2+250)
         }
     };
     this.move = function(){}
