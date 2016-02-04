@@ -459,13 +459,11 @@ function Player(name, color, score){
     this.has_protection = true;
     this.transparent = 0;
     this.rectangular = 0;
+    this.crash_sound = sounds['crash']();
     this.draw = function(){
         this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "yellow";
         this.tail_color = !this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "black";
         if (!this.alive) {
-            if (this.hit) {
-                sounds['crash']().play();
-            }
             c.beginPath();
             c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
             c.fillStyle = this.head_color;
@@ -556,6 +554,7 @@ function Player(name, color, score){
         this.hit = this.collision_detection(x0, y0) && this.has_track && !this.has_protection;
         if (this.hit) {
             this.alive = false;
+            this.crash_sound.play();
         }
         var x2 = this.x1;
         var y2 = this.y1;
