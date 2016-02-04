@@ -459,9 +459,11 @@ function Player(name, color, score){
     this.has_protection = true;
     this.transparent = 0;
     this.rectangular = 0;
+    this.flipped = 0;
     this.crash_sound = sounds['crash']();
     this.draw = function(){
-        this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "yellow";
+        var default_head_color = this.flipped > 0 ? "blue" : "yellow";
+        this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : default_head_color;
         this.tail_color = !this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "black";
         if (!this.alive) {
             c.beginPath();
@@ -512,12 +514,18 @@ function Player(name, color, score){
         }
     };
     this.acceleration = function() {
+        var sgn = null;
+        if (this.flipped > 0) {
+            sgn = -1;
+        } else {
+            sgn = 1;
+        }
         var acc = 0;
         if (this.to_left) {
-            acc -= 1;
+            acc -= sgn * 1;
         }
         if (this.to_right) {
-            acc += 1;
+            acc += sgn * 1;
         }
         return acc;
     };
@@ -827,6 +835,7 @@ function PowerUps() {
         for (i=0; i<attempts; i++) {
             var p;
             var rnd = getRandomInt(9);
+            var rnd=9;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -837,6 +846,7 @@ function PowerUps() {
                 case 6: p = new PowerUpRect(); break;
                 case 7: p = new PowerUpFluffy(); break;
                 case 8: p = new PowerUpRectOther(); break;
+                case 9: p = new PowerUpFlippedOther(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -1026,6 +1036,18 @@ function PowerUpRectOther() {
     };
     this.release = function(pl) {
         this.other_players(pl, function(other) { other.rectangular -= 1; });
+    };
+}
+
+PowerUpFlippedOther.prototype = new PowerUpBase('negative');
+PowerUpFlippedOther.prototype.constructor = PowerUpFlippedOther;
+function PowerUpFlippedOther() {
+    this.img.src = "img/font-awesome/svg/exchange1.svg";
+    this.upgrade = function(pl) {
+        this.other_players(pl, function(other) { other.flipped += 1; });
+    };
+    this.release = function(pl) {
+        this.other_players(pl, function(other) { other.flipped -= 1; });
     };
 }
 
