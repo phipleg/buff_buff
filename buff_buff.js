@@ -448,7 +448,6 @@ function Player(name, color, score){
     this.name = name;
     this.color = color;
     this.score = score;
-    this.strokeStyle = color;
     this.alive = true;
     this.hit = false;
     this.size = 3;
@@ -467,17 +466,19 @@ function Player(name, color, score){
     this.transparent = 0;
     this.rectangular = 0;
     this.draw = function(){
+        var alpha = 0.3 + 0.7*board.time / 100.0
+        this.head_color = !this.has_protection ? 'yellow' : rgba(255, 255, 0, alpha)
+        this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1)
         if (!this.alive) {
             if (this.hit) {
                 sounds['crash']().play();
             }
             c.beginPath();
             c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
-            c.fillStyle = this.color;
+            c.fillStyle = this.head_color;
             c.fill();
             return;
         }
-        this.head_color = !this.has_protection ? 'yellow' : 'rgba(255,255,255,' + (board.time / 100.0) + ')'
         if (this.rectangular >= 1) {
             c.beginPath();
             var x = this.x + cw2;
@@ -531,7 +532,7 @@ function Player(name, color, score){
     };
     this.move = function(){
         this.hit = false;
-        if ('playing' != state || !this.alive) {
+        if (!this.alive) {
             return;
         }
         this.has_protection = board.time < 100;
@@ -573,9 +574,9 @@ function Player(name, color, score){
             d01 = dist(this.x, this.y, this.x1, this.y1);
             d12 = dist(this.x1, this.y1, x2, y2);
             if (d01 < 100 && d12 < 100) {
-                board.add_line(x2, y2, this.x1, this.y1, this.x, this.y, 2* this.size, this.strokeStyle);
+                board.add_line(x2, y2, this.x1, this.y1, this.x, this.y, 2* this.size, this.tail_color);
             } else {
-                board.add_line(this.x, this.y, this.x, this.y, this.x, this.y, 2* this.size, this.strokeStyle);
+                board.add_line(this.x, this.y, this.x, this.y, this.x, this.y, 2* this.size, this.tail_color);
             }
         }
     };
@@ -632,10 +633,15 @@ function PlayerList() {
         for (var i=0; i<gameconfig.bindings.length; i++) {
             var cfg = gameconfig.bindings[i];
             if ('human' == cfg.type) {
-                var col = rgba(cfg.color.r, cfg.color.g, cfg.color.b, 1.0);
                 var old_pl = old_by_name[cfg.name];
                 var score = old_pl ? old_pl.score : 0.0;
-                var pl = new Player(cfg.name, col, score);
+                var pl = new Player(cfg.name, cfg.color, score);
+                pl.move();
+                pl.draw();
+                pl.move();
+                pl.draw();
+                pl.move();
+                pl.draw();
                 this.list.push(pl);
                 this.by_name[pl.name] = pl;
             }
@@ -657,6 +663,9 @@ function PlayerList() {
         return result;
     };
     this.move = function() {
+        if (state != 'playing') {
+            return;
+        }
         for (var i=0; i<this.list.length; i++) {
             var pl = this.list[i];
             pl.move();
@@ -694,6 +703,8 @@ function Board() {
         var ctx = this.space_ctx;
         var imDat = ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
+        c.fillStyle='white';
+        c.fillRect(-this.w/2+cw2, 3, this.w*(Math.min(1.0, this.time/100.0)), 4);
         if (this.endless >= 1) {
             c.beginPath();
             c.lineWidth="4";
@@ -708,8 +719,8 @@ function Board() {
     this.move = function(){
         if (state == 'playing') {
             this.time += 1;
-            this.add_border();
         }
+        this.add_border();
     };
     this.add_border = function() {
         var ctx = this.space_ctx;
