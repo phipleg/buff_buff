@@ -463,6 +463,7 @@ function Player(name, color, score){
     this.y1 = this.y;
     this.has_hole = false;
     this.has_track = false;
+    this.has_protection = true;
     this.transparent = 0;
     this.rectangular = 0;
     this.draw = function(){
@@ -476,6 +477,7 @@ function Player(name, color, score){
             c.fill();
             return;
         }
+        this.head_color = !this.has_protection ? 'yellow' : 'rgba(255,255,255,' + (board.time / 100.0) + ')'
         if (this.rectangular >= 1) {
             c.beginPath();
             var x = this.x + cw2;
@@ -497,22 +499,22 @@ function Player(name, color, score){
             c.lineTo(x,y);
             c.closePath();
             if (this.transparent == 0) {
-                c.fillStyle = "yellow";
+                c.fillStyle = this.head_color;
                 c.fill();
             } else {
                 c.lineWidth = "1";
-                c.strokeStyle = "yellow";
+                c.strokeStyle = this.head_color;
                 c.stroke();
             }
         } else {
             c.beginPath();
             c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
             if (this.transparent == 0) {
-                c.fillStyle = "yellow";
+                c.fillStyle = this.head_color;
                 c.fill();
             } else {
                 c.lineWidth = "1";
-                c.strokeStyle = "yellow";
+                c.strokeStyle = this.head_color;
                 c.stroke();
             }
         }
@@ -532,6 +534,7 @@ function Player(name, color, score){
         if ('playing' != state || !this.alive) {
             return;
         }
+        this.has_protection = board.time < 100;
         this.has_hole = board.time % 100 >= 80;
         this.has_track = !(this.has_hole || this.transparent > 0);
         var acc = this.acceleration();
@@ -556,7 +559,7 @@ function Player(name, color, score){
         x0 = new_pos[0];
         y0 = new_pos[1];
 
-        this.hit = this.collision_detection(x0, y0) && this.has_track;
+        this.hit = this.collision_detection(x0, y0) && this.has_track && !this.has_protection;
         if (this.hit) {
             this.alive = false;
         }
@@ -703,8 +706,10 @@ function Board() {
         }
     };
     this.move = function(){
-        this.time += 1;
-        this.add_border();
+        if (state == 'playing') {
+            this.time += 1;
+            this.add_border();
+        }
     };
     this.add_border = function() {
         var ctx = this.space_ctx;
