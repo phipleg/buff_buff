@@ -543,7 +543,7 @@ function Player(name, color, score){
             this.to_left = false;
             this.to_right = false;
         } else {
-            this.angle_delta = Math.PI/32;
+            this.angle_delta = Math.PI/48;
         }
         var da = acc * this.angle_delta;
         this.angle += da;
