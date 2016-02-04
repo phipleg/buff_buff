@@ -299,12 +299,6 @@ function transition(keyCode, keydown) {
         //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
         key = keyboardMap[keyCode];
     }
-    player_keys = {
-        37: { 'id': 0, 'direction': 'left' },
-        39: { 'id': 0, 'direction': 'right' },
-        81: { 'id': 1, 'direction': 'left' },
-        87: { 'id': 1, 'direction': 'right' }
-    };
     if ('init' === state) {
         background = new Background();
         gameconfig = new GameConfig();
@@ -837,7 +831,6 @@ function PowerUps() {
         for (i=0; i<attempts; i++) {
             var p;
             var rnd = getRandomInt(9);
-            rnd = 8;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -894,7 +887,7 @@ function PowerUps() {
             return;
         }
         var x = this.available.length;
-        if (Math.random() < 1.0/(100. + (x+2)*(x+2))) {
+        if (Math.random() < 1.0/(200. + (x+2)*(x+2))) {
             this.add();
         }
         for (var i=0; i<this.available.length; i++) {
@@ -943,6 +936,14 @@ function PowerUpBase(kind) {
     this.move = function(){
         if (null != this.owner) {
             this.age += 1.0/500;
+        }
+    };
+    this.other_players = function(pl, collector) {
+        for (var i=0; i<players.list.length; i++) {
+            var other = players.list[i];
+            if (other !== pl) {
+                collector(other);
+            }
         }
     };
 }
@@ -1025,20 +1026,10 @@ PowerUpRectOther.prototype.constructor = PowerUpRectOther;
 function PowerUpRectOther() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
     this.upgrade = function(pl) {
-        for (var i=0; i<players.list.length; i++) {
-            var other = players.list[i];
-            if (other !== pl) {
-                other.rectangular += 1;
-            }
-        }
+        this.other_players(pl, function(other) { other.rectangular += 1; });
     };
     this.release = function(pl) {
-        for (var i=0; i<players.list.length; i++) {
-            var other = players.list[i];
-            if (other !== pl) {
-                other.rectangular -= 1;
-            }
-        }
+        this.other_players(pl, function(other) { other.rectangular -= 1; });
     };
 }
 
@@ -1083,7 +1074,7 @@ function Info(){
         var sorted = players.sorted();
         for (var i=0; i<sorted.length; i++) {
             var pl = sorted[i];
-            c.fillStyle = pl.color;
+            c.fillStyle = rgba(pl.color.r, pl.color.g, pl.color.b, 1.0);
             c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+32*i);
         }
     };
