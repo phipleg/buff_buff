@@ -1,8 +1,6 @@
 window.onload = function(){
     canvas = document.getElementById("big");
-    canvas.width = window.innerWidth * 0.9;
     canvas.width = 1024;
-    canvas.height = window.innerHeight * 0.85;
     canvas.height = 720;
     sounds = {};
     sounds['blast'] = function() { return new Audio("sounds/blast_5.mp3"); };
@@ -16,8 +14,18 @@ window.onload = function(){
     transition();
     run();
 
-    window.addEventListener("keydown", function (e) { e.preventDefault(); transition(e.which, true); }, true);
-    window.addEventListener("keyup", function (e) { e.preventDefault(); transition(e.which, false); }, true);
+    window.addEventListener("keydown", function (e) {
+        if (32 == e.which) {
+          e.preventDefault();
+        }
+        transition(e.which, true);
+    }, true);
+    window.addEventListener("keyup", function (e) {
+        if (32 == e.which) {
+          e.preventDefault();
+        }
+        transition(e.which, false);
+    }, true);
 }
 // names of known key codes (0-255)
 
@@ -279,25 +287,14 @@ var keyboardMap = [
   "WIN_OEM_CLEAR", // [254]
   "" // [255]
 ];
-keyCodes = {
-    37: 'left',
-    39: 'right',
-    81: 'up',
-    87: 'down',
-    32: 'space',
-    27: 'esc'
-};
 
 function transition(keyCode, keydown) {
-    var input = null;
-    var key;
+    var key = null;
     if (keyCode !== undefined) {
-        input = keyCodes[keyCode];
-        if (!keydown) {
-            input += '_up';
-        }
-        //console.log({'state': state, 'input': input, 'key': keyCode, 'keydown': keydown});
         key = keyboardMap[keyCode];
+        if (!keydown) {
+            key += '_UP';
+        }
     }
     if ('init' === state) {
         background = new Background();
@@ -306,12 +303,12 @@ function transition(keyCode, keydown) {
         state = 'menu';
         universe = [gamestart, background];
     } else if ('menu' === state) {
-        if ('space' === input) {
+        if ('SPACE' === key) {
             universe = [gameconfig, background];
             state = 'config';
         }
     } else if ('config' === state) {
-        if ('space' === input) {
+        if ('SPACE' === key) {
             if (gameconfig.valid) {
                 board = new Board();
                 info = new Info();
@@ -324,7 +321,7 @@ function transition(keyCode, keydown) {
                 universe = [gameready, players, powerups, board, info, background];
                 state = 'ready';
             }
-        } else if ('esc' === input) {
+        } else if ('ESC' === key) {
             state = 'init';
         } else {
             if (null != key && keydown) {
@@ -360,16 +357,15 @@ function transition(keyCode, keydown) {
             }
         }
     } else if ('ready' === state) {
-        if ('space' === input) {
+        if ('SPACE' === key) {
             universe = [players, powerups, board, info, background];
             state = 'playing';
-        } else if ('esc' == input) {
+        } else if ('ESC' == key) {
             universe = [gameconfig, background];
             state = 'config';
         }
     } else if ('playing' === state) {
-        if (null === input) {
-        } else if ('esc' === input || 'space' === input) {
+        if ('ESC' === key || 'SPACE' === key) {
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
             state = 'pause';
@@ -379,28 +375,32 @@ function transition(keyCode, keydown) {
                 var pl = players.by_name[cfg.name];
                 if (cfg.type === 'human') {
                     if (key === cfg.left) {
-                        pl.to_left = keydown;
+                        pl.to_left = true;
+                    } else if (key === cfg.left + '_UP') {
+                        pl.to_left = false;
                     } else if (key === cfg.right) {
-                        pl.to_right = keydown;
+                        pl.to_right = true;
+                    } else if (key === cfg.right + '_UP') {
+                        pl.to_right = false;
                     }
                 }
             }
         }
     } else if ('pause' === state) {
-        if ('esc' === input) {
+        if ('ESC' === key) {
             universe = [gameconfig, background];
             state = 'config';
-        } else if ('space' === input) {
+        } else if ('SPACE' === key) {
             universe = prev_universe;
             state = 'playing';
         }
     } else if ('game_over' === state) {
-        if ('space' == input) {
+        if ('SPACE' == key) {
             universe = [gameconfig, background];
             state = 'config';
         }
     } else if ('round_over' === state) {
-        if ('space' == input) {
+        if ('SPACE' == key) {
             board.reset();
             powerups.reset();
             players.deploy();
@@ -460,9 +460,8 @@ function Player(name, color, score){
     this.transparent = 0;
     this.rectangular = 0;
     this.draw = function(){
-        var alpha = 0.3 + 0.7*board.time / 100.0
-        this.head_color = !this.has_protection ? 'yellow' : rgba(255, 255, 0, alpha)
-        this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1)
+        this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "yellow";
+        this.tail_color = !this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "black";
         if (!this.alive) {
             if (this.hit) {
                 sounds['crash']().play();
@@ -697,12 +696,10 @@ function Board() {
         var ctx = this.space_ctx;
         var imDat = ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
-        c.fillStyle='white';
-        c.fillRect(-this.w/2+cw2, 3, this.w*(Math.min(1.0, this.time/100.0)), 4);
         if (this.endless >= 1) {
             c.beginPath();
             c.lineWidth="4";
-            c.strokeStyle="rgba(0,0,255," + (0.5 + 0.5*Math.sin(this.time/10.0)) + ")";
+            c.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
             c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
             c.stroke();
             this.sound.play();
@@ -1084,7 +1081,7 @@ function Info(){
 function GameOver(){
     this.draw = function(){
         var winner = players.sorted()[0];
-        c.fillStyle = "rgba(0,0,0,0.5)";
+        c.fillStyle = rgba(0,0,0,0.5);
         c.fillRect(0, 0, canvas.width,canvas.height);
         c.textAlign = "center";
         c.fillStyle = winner.color;
