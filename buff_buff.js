@@ -836,7 +836,8 @@ function PowerUps() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            var rnd = getRandomInt(8);
+            var rnd = getRandomInt(9);
+            rnd = 8;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -846,6 +847,7 @@ function PowerUps() {
                 case 5: p = new PowerUpFlight(); break;
                 case 6: p = new PowerUpRect(); break;
                 case 7: p = new PowerUpFluffy(); break;
+                case 8: p = new PowerUpRectOther(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -923,6 +925,8 @@ function PowerUpBase(kind) {
             this.color = rgba(0,0,255, 0.8 + 0.2*Math.sin(board.time/10.0));
         } else if ('positive' === kind) {
             this.color = rgba(0,255,0, 0.8 + 0.2*Math.sin(board.time/10.0));
+        } else if ('negative' === kind) {
+            this.color = rgba(255, 0, 0, 0.8 + 0.2*Math.sin(board.time/10.0));
         }
         c.beginPath();
         c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
@@ -1013,6 +1017,28 @@ function PowerUpRect() {
     };
     this.release = function(pl) {
         pl.rectangular -= 1;
+    };
+}
+
+PowerUpRectOther.prototype = new PowerUpBase('negative');
+PowerUpRectOther.prototype.constructor = PowerUpRectOther;
+function PowerUpRectOther() {
+    this.img.src = "img/font-awesome/svg/retweet2.svg";
+    this.upgrade = function(pl) {
+        for (var i=0; i<players.list.length; i++) {
+            var other = players.list[i];
+            if (other !== pl) {
+                other.rectangular += 1;
+            }
+        }
+    };
+    this.release = function(pl) {
+        for (var i=0; i<players.list.length; i++) {
+            var other = players.list[i];
+            if (other !== pl) {
+                other.rectangular -= 1;
+            }
+        }
     };
 }
 
