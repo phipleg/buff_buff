@@ -464,7 +464,7 @@ function Player(name, color, score){
     this.draw = function(){
         var default_head_color = this.flipped > 0 ? "blue" : "yellow";
         this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : default_head_color;
-        this.tail_color = !this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : "black";
+        this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1);
         if (!this.alive) {
             c.beginPath();
             c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
@@ -570,7 +570,7 @@ function Player(name, color, score){
         this.y1 = this.y;
         this.x = x0;
         this.y = y0;
-        if (this.has_track) {
+        if (this.has_track && !this.has_protection) {
             d01 = dist(this.x, this.y, this.x1, this.y1);
             d12 = dist(this.x1, this.y1, x2, y2);
             if (d01 < 100 && d12 < 100) {
@@ -636,12 +636,6 @@ function PlayerList() {
                 var old_pl = old_by_name[cfg.name];
                 var score = old_pl ? old_pl.score : 0.0;
                 var pl = new Player(cfg.name, cfg.color, score);
-                pl.move();
-                pl.draw();
-                pl.move();
-                pl.draw();
-                pl.move();
-                pl.draw();
                 this.list.push(pl);
                 this.by_name[pl.name] = pl;
             }
@@ -690,14 +684,18 @@ function PlayerList() {
 }
 
 function Board() {
-    this.space_canvas = document.getElementById("board");
     this.w = 700;
     this.h = this.w;
+    this.space_canvas = document.getElementById("board");
     this.space_canvas.width = this.w;
     this.space_canvas.height = this.h;
+    this.space_ctx = this.space_canvas.getContext("2d");
+    this.collision_canvas = document.getElementById("collision");
+    this.collision_canvas.width = this.w;
+    this.collision_canvas.height = this.h;
+    this.collision_ctx = this.collision_canvas.getContext("2d");
     this.time = 0;
     this.endless = 0;
-    this.space_ctx = this.space_canvas.getContext("2d");
     this.sound = sounds['forcefield']();
     this.draw = function() {
         var ctx = this.space_ctx;
@@ -719,13 +717,22 @@ function Board() {
             this.time += 1;
         }
         if (this.endless == 0) {
-            var ctx = this.space_ctx;
-            ctx.beginPath();
-            ctx.lineWidth="4";
-            ctx.strokeStyle="yellow";
-            ctx.rect(0, 0, this.w, this.h);
-            ctx.stroke();
+            this.add_border();
         }
+    };
+    this.add_border = function() {
+        var ctx = this.space_ctx;
+        ctx.beginPath();
+        ctx.lineWidth="4";
+        ctx.strokeStyle="yellow";
+        ctx.rect(0, 0, this.w, this.h);
+        ctx.stroke();
+        ctx = this.collision_ctx;
+        ctx.beginPath();
+        ctx.lineWidth="4";
+        ctx.strokeStyle=rgba(255, 255, 255, 1.0);
+        ctx.rect(0, 0, this.w, this.h);
+        ctx.stroke();
     };
     this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
         var ctx = this.space_ctx;
@@ -735,9 +742,19 @@ function Board() {
         ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
         ctx.strokeStyle = strokeStyle;
         ctx.stroke();
+        ctx = this.collision_ctx;
+        ctx.beginPath();
+        ctx.lineWidth = lineWidth;
+        ctx.moveTo(x1+this.w/2, y1+this.h/2);
+        ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
+        ctx.strokeStyle = rgba(255, 255, 255, 1.0);
+        ctx.stroke();
     };
     this.clear = function() {
         var ctx = this.space_ctx;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,this.w,this.h);
+        ctx = this.collision_ctx;
         ctx.fillStyle = 'black';
         ctx.fillRect(0,0,this.w,this.h);
     };
@@ -764,8 +781,7 @@ function Board() {
     };
     this.is_empty_at = function(point_data) {
         var box = this.get_enclosing_box(point_data);
-        var ctx = this.space_ctx;
-        var imDat = ctx.getImageData(box.x1,box.y1,box.width,box.height);
+        var imDat = this.collision_ctx.getImageData(box.x1,box.y1,box.width,box.height);
         hits = [];
         for (var i=0; i<point_data.length-1; i+=2) {
             var x = point_data[i];
@@ -776,8 +792,11 @@ function Board() {
             var r = imDat.data[4*j+0];
             var g = imDat.data[4*j+1];
             var b = imDat.data[4*j+2];
-            if (r+g+b>0) {
-                hits.push({x:x, y:y});
+            var a = imDat.data[4*j+3];
+            if (r == 255 && g == 255 && b == 255 && a > 200) {
+                hit = {p:{x:x, y:y}, r:r, g:g, b:b, a:a};
+                hits.push(hit);
+                console.log(hit);
             }
         }
         imDat.data = null;
