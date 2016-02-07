@@ -718,26 +718,20 @@ function Board() {
         if (state == 'playing') {
             this.time += 1;
         }
-        this.add_border();
-    };
-    this.add_border = function() {
-        var ctx = this.space_ctx;
-        ctx.beginPath();
-        ctx.lineWidth="4";
-        if (this.endless >= 1) {
-            ctx.strokeStyle="black";
-        } else {
+        if (this.endless == 0) {
+            var ctx = this.space_ctx;
+            ctx.beginPath();
+            ctx.lineWidth="4";
             ctx.strokeStyle="yellow";
+            ctx.rect(0, 0, this.w, this.h);
+            ctx.stroke();
         }
-        ctx.rect(0, 0, this.w, this.h);
-        ctx.stroke();
     };
     this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
         var ctx = this.space_ctx;
         ctx.beginPath();
         ctx.lineWidth = lineWidth;
         ctx.moveTo(x1+this.w/2, y1+this.h/2);
-        //ctx.lineTo(x2+this.w/2, y2+this.h/2);
         ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
         ctx.strokeStyle = strokeStyle;
         ctx.stroke();
@@ -791,9 +785,6 @@ function Board() {
                 var y = hits[i][1];
                 var tx = Math.floor(clip(x+this.w/2, 0, this.w));
                 var ty = Math.floor(clip(y+this.h/2, 0, this.h));
-                //ctx.strokeStyle = "rgb(0,255,0)";
-                //ctx.rect(tx,ty,0.2,0.2);
-                //ctx.stroke();
             }
         }
         return hits.length == 0;
