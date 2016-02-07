@@ -447,11 +447,10 @@ function Player(name, color, score){
     this.size = 3;
     this.to_left = false;
     this.to_right = false;
-    this.angle_delta = 0.0;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
-    this.x = (Math.random()-0.5)*(board.w-32);
-    this.y = (Math.random()-0.5)*(board.h-32);
+    this.x = (Math.random()-0.5)*(board.w-100);
+    this.y = (Math.random()-0.5)*(board.h-100);
     this.x1 = this.x;
     this.y1 = this.y;
     this.has_hole = false;
@@ -460,6 +459,13 @@ function Player(name, color, score){
     this.transparent = 0;
     this.rectangular = 0;
     this.flipped = 0;
+    if (name == 'Fred') {
+        this.size = 20;
+        this.rectangular = 10;
+        this.v = 1;
+    } else {
+        this.transparent = 10;
+    }
     this.crash_sound = sounds['crash']();
     this.draw = function(){
         var default_head_color = this.flipped > 0 ? "blue" : "yellow";
@@ -538,26 +544,25 @@ function Player(name, color, score){
         this.has_hole = board.time % 100 >= 90;
         this.has_track = !(this.has_hole || this.transparent > 0);
         var acc = this.acceleration();
+        var angle_delta;
+        var dl = this.v;
         if (this.rectangular >= 1) {
-            this.angle_delta = Math.PI/2;
+            angle_delta = Math.PI/2;
+            if (acc != 0) {
+                dl = Math.max(this.v, 2* this.size);
+            }
             this.to_left = false;
             this.to_right = false;
         } else {
-            this.angle_delta = Math.PI/48;
+            angle_delta = Math.PI/48;
         }
-        var da = acc * this.angle_delta;
+        var da = acc * angle_delta;
         this.angle += da;
-        var dl = Math.abs(Math.sin(da)) * (this.size+1);
-        if (dl < this.v && (this.rectangular == 0 || acc == 0)) {
-            dl = this.v;
-        }
         var dx = Math.cos(this.angle) * dl;
         var dy = Math.sin(this.angle) * dl;
-        var x0 = this.x + dx;
-        var y0 = this.y + dy;
-        var new_pos = board.project(x0, y0);
-        x0 = new_pos.x;
-        y0 = new_pos.y;
+        var new_pos = board.project(this.x + dx, this.y + dy);
+        var x0 = new_pos.x;
+        var y0 = new_pos.y;
 
         this.hit = this.collision_detection(x0, y0) && this.has_track && !this.has_protection;
         if (this.hit) {
@@ -582,32 +587,33 @@ function Player(name, color, score){
     };
     this.surface_points = function(new_x, new_y) {
         var points = [];
+        var radius = this.size -1;
         if (this.rectangular >= 1) {
             var sx = new_x;
             var sy = new_y;
-            sx += this.size*Math.cos(this.angle-0.5*Math.PI);
-            sy += this.size*Math.sin(this.angle-0.5*Math.PI);
+            sx += radius*Math.cos(this.angle-0.5*Math.PI);
+            sy += radius*Math.sin(this.angle-0.5*Math.PI);
             points.push(Math.floor(sx));
             points.push(Math.floor(sy));
-            sx += this.size*Math.cos(this.angle-0.0*Math.PI);
-            sy += this.size*Math.sin(this.angle-0.0*Math.PI);
+            sx += radius*Math.cos(this.angle-0.0*Math.PI);
+            sy += radius*Math.sin(this.angle-0.0*Math.PI);
             points.push(Math.floor(sx));
             points.push(Math.floor(sy));
-            sx += this.size*Math.cos(this.angle+0.5*Math.PI);
-            sy += this.size*Math.sin(this.angle+0.5*Math.PI);
+            sx += radius*Math.cos(this.angle+0.5*Math.PI);
+            sy += radius*Math.sin(this.angle+0.5*Math.PI);
             points.push(Math.floor(sx));
             points.push(Math.floor(sy));
-            sx += this.size*Math.cos(this.angle+0.5*Math.PI);
-            sy += this.size*Math.sin(this.angle+0.5*Math.PI);
+            sx += radius*Math.cos(this.angle+0.5*Math.PI);
+            sy += radius*Math.sin(this.angle+0.5*Math.PI);
             points.push(Math.floor(sx));
             points.push(Math.floor(sy));
-            sx += this.size*Math.cos(this.angle+1.0*Math.PI);
-            sy += this.size*Math.sin(this.angle+1.0*Math.PI);
+            sx += radius*Math.cos(this.angle+1.0*Math.PI);
+            sy += radius*Math.sin(this.angle+1.0*Math.PI);
         } else {
             for (var t=-1; t<=1; t+=0.2){
                 var beta = this.angle + t* Math.PI/2 * 0.8;
-                var sx = new_x + Math.cos(beta) * this.size;
-                var sy = new_y + Math.sin(beta) * this.size;
+                var sx = new_x + Math.cos(beta) * radius;
+                var sy = new_y + Math.sin(beta) * radius;
                 points.push(Math.floor(sx));
                 points.push(Math.floor(sy));
             }
@@ -619,7 +625,8 @@ function Player(name, color, score){
         for (var i=0; i<points.length-1; i+=2) {
             powerups.pick_from(this, points[i], points[i+1]);
         }
-        return !board.is_empty_at(points);
+        var min_age = 10 + 2 * this.size * 1.0 / this.v
+        return !board.is_empty_at(points, min_age);
     };
 }
 
@@ -716,21 +723,24 @@ function Board() {
         if (state == 'playing') {
             this.time += 1;
         }
-        if (this.endless == 0) {
-            this.add_border();
-        }
-    };
-    this.add_border = function() {
         var ctx = this.space_ctx;
         ctx.beginPath();
         ctx.lineWidth="4";
-        ctx.strokeStyle="yellow";
+        if (this.endless == 0) {
+            ctx.strokeStyle="yellow";
+        } else {
+            ctx.strokeStyle="black";
+        }
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
         ctx = this.collision_ctx;
         ctx.beginPath();
         ctx.lineWidth="4";
-        ctx.strokeStyle=rgba(255, 255, 255, 1.0);
+        if (this.endless == 0) {
+            ctx.strokeStyle=rgba(0, 1, 255, 1.0);
+        } else {
+            ctx.strokeStyle="black";
+        }
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
     };
@@ -747,7 +757,11 @@ function Board() {
         ctx.lineWidth = lineWidth;
         ctx.moveTo(x1+this.w/2, y1+this.h/2);
         ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
-        ctx.strokeStyle = rgba(255, 255, 255, 1.0);
+        var t = Math.floor(board.time / 10);
+        var r = Math.floor(t / 256);
+        var g = Math.floor(t % 256);
+        var b = 255;
+        ctx.strokeStyle = rgba(r,g,b, 1.0);
         ctx.stroke();
     };
     this.clear = function() {
@@ -779,7 +793,7 @@ function Board() {
         }
         return {x1: x1, y1: y1, y2: y2, width: x2-x1+1, height: y2-y1+1};
     };
-    this.is_empty_at = function(point_data) {
+    this.is_empty_at = function(point_data, min_age) {
         var box = this.get_enclosing_box(point_data);
         var imDat = this.collision_ctx.getImageData(box.x1,box.y1,box.width,box.height);
         hits = [];
@@ -792,9 +806,10 @@ function Board() {
             var r = imDat.data[4*j+0];
             var g = imDat.data[4*j+1];
             var b = imDat.data[4*j+2];
-            var a = imDat.data[4*j+3];
-            if (r == 255 && g == 255 && b == 255 && a > 200) {
-                hit = {p:{x:x, y:y}, r:r, g:g, b:b, a:a};
+            var point_created = 10 * (r*256+g);
+            var age = board.time - point_created;
+            if (age > min_age && point_created != 0) {
+                hit = {p:{x:x, y:y}, r:r, g:g, b:b, age: age};
                 hits.push(hit);
                 console.log(hit);
             }
