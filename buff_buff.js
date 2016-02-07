@@ -535,7 +535,7 @@ function Player(name, color, score){
             return;
         }
         this.has_protection = board.time < 100;
-        this.has_hole = board.time % 100 >= 80;
+        this.has_hole = board.time % 100 >= 90;
         this.has_track = !(this.has_hole || this.transparent > 0);
         var acc = this.acceleration();
         if (this.rectangular >= 1) {
@@ -556,8 +556,8 @@ function Player(name, color, score){
         var x0 = this.x + dx;
         var y0 = this.y + dy;
         var new_pos = board.project(x0, y0);
-        x0 = new_pos[0];
-        y0 = new_pos[1];
+        x0 = new_pos.x;
+        y0 = new_pos.y;
 
         this.hit = this.collision_detection(x0, y0) && this.has_track && !this.has_protection;
         if (this.hit) {
@@ -748,7 +748,7 @@ function Board() {
         this.sound.pause();
         this.currentTime = 0;
     };
-    this.is_empty_at = function(points) {
+    this.get_enclosing_box = function(points) {
         var x1=this.w; x2=0; y1=this.h; y2=0;
         for (var i=0; i<points.length-1; i+=2) {
             var x = points[i];
@@ -760,33 +760,27 @@ function Board() {
             y1 = Math.min(y1, ty);
             y2 = Math.max(y2, ty);
         }
+        return {x1: x1, y1: y1, y2: y2, width: x2-x1+1, height: y2-y1+1};
+    };
+    this.is_empty_at = function(point_data) {
+        var box = this.get_enclosing_box(point_data);
         var ctx = this.space_ctx;
-        var w = x2-x1+1;
-        var h = y2-y1+1;
-        var imDat = ctx.getImageData(x1,y1,w,h);
+        var imDat = ctx.getImageData(box.x1,box.y1,box.width,box.height);
         hits = [];
-        for (var i=0; i<points.length-1; i+=2) {
-            var x = points[i];
-            var y = points[i+1];
+        for (var i=0; i<point_data.length-1; i+=2) {
+            var x = point_data[i];
+            var y = point_data[i+1];
             var tx = Math.floor(clip(x+this.w/2, 0, this.w));
             var ty = Math.floor(clip(y+this.h/2, 0, this.h));
-            var j = (tx-x1)+(ty-y1)*w;
+            var j = (tx-box.x1)+(ty-box.y1)*box.width;
             var r = imDat.data[4*j+0];
             var g = imDat.data[4*j+1];
             var b = imDat.data[4*j+2];
             if (r+g+b>0) {
-                hits.push([x,y,r,g,b]);
+                hits.push({x:x, y:y});
             }
         }
         imDat.data = null;
-        if (false && hits.length > 0) {
-            for (var i=0; i<hits.length; i++) {
-                var x = hits[i][0];
-                var y = hits[i][1];
-                var tx = Math.floor(clip(x+this.w/2, 0, this.w));
-                var ty = Math.floor(clip(y+this.h/2, 0, this.h));
-            }
-        }
         return hits.length == 0;
     };
     this.project = function(x, y) {
@@ -809,7 +803,7 @@ function Board() {
                 y = clip(y, -this.h/2, this.h/2);
             }
         }
-        return [x, y];
+        return {x:x, y:y};
     };
 }
 
