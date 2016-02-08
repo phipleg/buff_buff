@@ -441,6 +441,7 @@ function render() {
 function Player(name, color, score){
     this.name = name;
     this.color = color;
+    this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1);
     this.score = score;
     this.alive = true;
     this.hit = false;
@@ -462,8 +463,7 @@ function Player(name, color, score){
     this.crash_sound = sounds['crash']();
     this.draw = function(){
         var default_head_color = this.flipped > 0 ? "blue" : "yellow";
-        this.head_color = this.has_protection ? rgba(this.color.r, this.color.g, this.color.b, 1) : default_head_color;
-        this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1);
+        this.head_color = this.has_protection ? this.tail_color : default_head_color;
         if (!this.alive) {
             c.beginPath();
             c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
@@ -1101,15 +1101,16 @@ function Background() {
 
 function Info(){
     this.draw = function(){
-        c.font = "16px pixelfont";
+        c.font = "30px pixelfont";
         c.textAlign = "left";
         c.fillStyle = "white";
         c.fillText("Goal " + players.goal, cw2+board.w/2+4, 32);
+        c.font = "16px pixelfont";
         var sorted = players.sorted();
         for (var i=0; i<sorted.length; i++) {
             var pl = sorted[i];
-            c.fillStyle = rgba(pl.color.r, pl.color.g, pl.color.b, 1.0);
-            c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+32*i);
+            c.fillStyle = pl.tail_color;
+            c.fillText(pl.name + " " + pl.score, cw2+board.w/2+4, 64+20*i);
         }
     };
     this.move = function(){};
@@ -1121,7 +1122,7 @@ function GameOver(){
         c.fillStyle = rgba(0,0,0,0.5);
         c.fillRect(0, 0, canvas.width,canvas.height);
         c.textAlign = "center";
-        c.fillStyle = winner.color;
+        c.fillStyle = winner.tail_color;
         c.font = "50px pixelfont";
         c.fillText(winner.name, cw2, ch2-60);
         c.fillText('wins!', cw2, ch2);
