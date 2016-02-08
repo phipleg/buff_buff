@@ -738,6 +738,8 @@ function Board() {
     this.move = function(){
         if (state == 'playing') {
             this.time += 1;
+        } else {
+            return;
         }
         var ctx = this.space_ctx;
         ctx.beginPath();
@@ -802,8 +804,10 @@ function Board() {
     };
     this.reset = function() {
         this.clear();
+        this.border_size = 10;
         this.time = 0;
         this.endless = 0;
+        this.nebula = 0;
         this.sound.pause();
     };
     this.get_enclosing_box = function(points) {
