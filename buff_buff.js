@@ -460,6 +460,8 @@ function Player(name, color, score){
     this.y = (Math.random()-0.5)*(board.h-100);
     this.x1 = this.x;
     this.y1 = this.y;
+    this.distance = 0;
+    this.last_track_distance = 0;
     this.has_hole = false;
     this.has_track = false;
     this.has_protection = true;
@@ -519,12 +521,7 @@ function Player(name, color, score){
         }
     };
     this.acceleration = function() {
-        var sgn = null;
-        if (this.flipped > 0) {
-            sgn = -1;
-        } else {
-            sgn = 1;
-        }
+        var sgn = sgn = this.flipped ? -1 : 1;
         var acc = 0;
         if (this.to_left) {
             acc -= sgn * 1;
@@ -540,7 +537,20 @@ function Player(name, color, score){
             return;
         }
         this.has_protection = board.time < 100;
-        this.has_hole = board.time % 100 >= 90;
+        var gap_factor = 3 * this.size*10;
+        if (false == this.has_hole) {
+            if (this.distance > this.last_track_distance + 10 * this.size) {
+                this.has_hole = Math.random() > 0.98;
+                if (this.has_hole) {
+                    this.last_track_distance = this.distance;
+                }
+            }
+        } else {
+            if (this.distance > this.last_track_distance + 4 * this.size) {
+                this.has_hole = false;
+                this.last_track_distance = this.distance;
+            }
+        }
         this.has_track = !(this.has_hole || this.transparent > 0);
         var acc = this.acceleration();
         var angle_delta;
@@ -555,8 +565,8 @@ function Player(name, color, score){
         } else {
             angle_delta = Math.PI/48;
         }
-        var da = acc * angle_delta;
-        this.angle += da;
+        this.distance += dl;
+        this.angle += acc * angle_delta;
         var dx = Math.cos(this.angle) * dl;
         var dy = Math.sin(this.angle) * dl;
         var new_pos = board.project(this.x + dx, this.y + dy);
@@ -942,12 +952,13 @@ function PowerUpBase(kind) {
     this.radius = 16;
     this.age = 0;
     this.draw = function(){
+        var alpha = 0.8 + 0.2*Math.sin(board.time/10.0)
         if ('neutral' === kind) {
-            this.color = rgba(0,0,255, 0.8 + 0.2*Math.sin(board.time/10.0));
+            this.color = rgba(0,0,255, alpha);
         } else if ('positive' === kind) {
-            this.color = rgba(0,255,0, 0.8 + 0.2*Math.sin(board.time/10.0));
+            this.color = rgba(0,255,0, alpha);
         } else if ('negative' === kind) {
-            this.color = rgba(255, 0, 0, 0.8 + 0.2*Math.sin(board.time/10.0));
+            this.color = rgba(255, 0, 0, alpha);
         }
         c.beginPath();
         c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
