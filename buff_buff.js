@@ -536,7 +536,7 @@ function Player(name, color, score){
         if (!this.alive) {
             return;
         }
-        this.has_protection = board.time < 100;
+        this.has_protection = this.distance < 100;
         var gap_factor = 3 * this.size*10;
         if (false == this.has_hole) {
             if (this.distance > this.last_track_distance + 10 * this.size) {
@@ -800,7 +800,6 @@ function Board() {
         this.time = 0;
         this.endless = 0;
         this.sound.pause();
-        this.currentTime = 0;
     };
     this.get_enclosing_box = function(points) {
         var x1=this.w; x2=0; y1=this.h; y2=0;
