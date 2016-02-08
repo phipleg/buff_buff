@@ -11,11 +11,12 @@ body {
 canvas {
     display: block;
     margin: 0 auto;
-    //width: 800px;
-    //position: absolute;
-    //left: 0px;
 }
 
 #board {
+    display: None;
+}
+
+#collision {
     display: None;
 }
