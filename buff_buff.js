@@ -951,6 +951,14 @@ function PowerUpBase(kind) {
     this.y = 0;
     this.radius = 16;
     this.age = 0;
+    this.max_age = 0;
+    if ('neutral' === kind) {
+        this.max_age = 500;
+    } else if ('positive' === kind) {
+        this.max_age = 300;
+    } else if ('negative' === kind) {
+        this.max_age = 200;
+    }
     this.draw = function(){
         var alpha = 0.8 + 0.2*Math.sin(board.time/10.0)
         if ('neutral' === kind) {
@@ -970,11 +978,11 @@ function PowerUpBase(kind) {
         c.drawImage(this.img, this.x-w/2+cw2, this.y-h/2+ch2, w, h);
     };
     this.finished = function() {
-        return this.age > 1;
+        return this.age > this.max_age;
     };
     this.move = function(){
         if (null != this.owner) {
-            this.age += 1.0/500;
+            this.age += 1;
         }
     };
     this.other_players = function(pl, collector) {
