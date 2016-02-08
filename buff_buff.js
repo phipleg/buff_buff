@@ -775,6 +775,18 @@ function Board() {
         ctx.strokeStyle = rgba(r,g,b, 1.0);
         ctx.stroke();
     };
+    this.add_circle = function(x,y,radius, fillStyle) {
+        var ctx = this.space_ctx;
+        ctx.beginPath();
+        ctx.arc(x+this.w/2, y+this.h/2, radius, -1*Math.PI, 1*Math.PI, false);
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx = this.collision_ctx;
+        ctx.beginPath();
+        ctx.arc(x+this.w/2, y+this.h/2, radius, -1*Math.PI, 1*Math.PI, false);
+        ctx.fillStyle = rgba(0, 1, 255, 1.0);
+        ctx.fill();
+    };
     this.clear = function() {
         var ctx = this.space_ctx;
         ctx.fillStyle = 'black';
@@ -863,7 +875,7 @@ function PowerUps() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            var rnd = getRandomInt(9);
+            var rnd = getRandomInt(11);
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -875,6 +887,7 @@ function PowerUps() {
                 case 7: p = new PowerUpFluffy(); break;
                 case 8: p = new PowerUpRectOther(); break;
                 case 9: p = new PowerUpFlippedOther(); break;
+                case 10: p = new PowerUpBombOther(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -907,7 +920,7 @@ function PowerUps() {
             this.available.splice(this.available.indexOf(p),1);
             p.age = 0;
             p.upgrade(pl);
-            sounds['howl_short']().play();
+            p.sound.play();
             p.owner = pl;
         }
     };
@@ -996,6 +1009,7 @@ PowerUpThicker.prototype = new PowerUpBase('positive');
 PowerUpThicker.prototype.constructor = PowerUpThicker;
 function PowerUpThicker() {
     this.img.src = "img/font-awesome/svg/plus26.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         pl.size *= 2.0;
     };
@@ -1008,6 +1022,7 @@ PowerUpThinner.prototype = new PowerUpBase('positive');
 PowerUpThinner.prototype.constructor = PowerUpSlower;
 function PowerUpThinner() {
     this.img.src = "img/font-awesome/svg/minus20.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         pl.size *= 0.5;
     };
@@ -1020,6 +1035,7 @@ PowerUpFaster.prototype = new PowerUpBase('positive');
 PowerUpFaster.prototype.constructor = PowerUpFaster;
 function PowerUpFaster() {
     this.img.src = "img/font-awesome/svg/dashboard2.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         pl.v *= 2.0;
     };
@@ -1032,6 +1048,8 @@ PowerUpSlower.prototype = new PowerUpBase('positive');
 PowerUpSlower.prototype.constructor = PowerUpSlower;
 function PowerUpSlower() {
     this.img.src = "img/font-awesome/svg/bug6.svg";
+    this.sound = sounds['howl_short']();
+
     this.upgrade = function(pl) {
         pl.v *= 0.5;
     };
@@ -1044,6 +1062,7 @@ PowerUpFlight.prototype = new PowerUpBase('positive');
 PowerUpFlight.prototype.constructor = PowerUpFlight;
 function PowerUpFlight() {
     this.img.src = "img/font-awesome/svg/plane12.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         pl.transparent += 1;
     };
@@ -1056,6 +1075,7 @@ PowerUpRect.prototype = new PowerUpBase('positive');
 PowerUpRect.prototype.constructor = PowerUpRect;
 function PowerUpRect() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         pl.rectangular += 1;
     };
@@ -1068,6 +1088,7 @@ PowerUpRectOther.prototype = new PowerUpBase('negative');
 PowerUpRectOther.prototype.constructor = PowerUpRectOther;
 function PowerUpRectOther() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         this.other_players(pl, function(other) { other.rectangular += 1; });
     };
@@ -1080,6 +1101,7 @@ PowerUpFlippedOther.prototype = new PowerUpBase('negative');
 PowerUpFlippedOther.prototype.constructor = PowerUpFlippedOther;
 function PowerUpFlippedOther() {
     this.img.src = "img/font-awesome/svg/exchange1.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         this.other_players(pl, function(other) { other.flipped += 1; });
     };
@@ -1088,10 +1110,25 @@ function PowerUpFlippedOther() {
     };
 }
 
+PowerUpBombOther.prototype = new PowerUpBase('negative');
+PowerUpBombOther.prototype.constructor = PowerUpBombOther;
+function PowerUpBombOther() {
+    this.img.src = "img/font-awesome/svg/time7.svg";
+    this.sound = new Audio('sounds/time_bomb.mp3');
+    this.max_age = 120;
+    this.upgrade = function(pl) {
+    };
+    this.release = function(pl) {
+        board.add_circle(this.x, this.y, 100, 'orange');
+        board.add_circle(this.x, this.y, 80, 'red');
+    };
+}
+
 PowerUpFluffy.prototype = new PowerUpBase('neutral');
 PowerUpFluffy.prototype.constructor = PowerUpFluffy;
 function PowerUpFluffy() {
     this.img.src = "img/font-awesome/svg/lightning14.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         board.endless += 1;
     };
@@ -1104,6 +1141,7 @@ PowerUpClear.prototype = new PowerUpBase('neutral');
 PowerUpClear.prototype.constructor = PowerUpClear;
 function PowerUpClear() {
     this.img.src = "img/font-awesome/svg/heart75.svg";
+    this.sound = sounds['howl_short']();
     this.upgrade = function(pl) {
         board.clear();
     };
