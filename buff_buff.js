@@ -321,34 +321,40 @@ function transition(keyCode, keydown) {
                 universe = [gameready, players, powerups, board, info, background];
                 state = 'ready';
             }
-        } else if ('ESC' === key) {
-            state = 'init';
         } else {
             if (null != key && keydown) {
-                if (['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(key) != -1) {
-                    if ('right' != gameconfig.current_key) {
-                        var idx = parseInt(key) -1;
-                        if (gameconfig.current_player != idx) {
-                            gameconfig.current_player = idx;
-                        } else {
-                            gameconfig.current_player = null;
-                            gameconfig.current_key = null;
+                if (gameconfig.current_player == null) {
+                    if (['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(key) != -1) {
+                        if ('right' != gameconfig.current_key) {
+                            var idx = parseInt(key) -1;
+                            if (gameconfig.current_player != idx) {
+                                gameconfig.current_player = idx;
+                                gameconfig.current_key = 'left';
+                            } else {
+                                gameconfig.current_player = null;
+                                gameconfig.current_key = null;
+                            }
+                            var cfg = gameconfig.bindings[idx];
+                            cfg.type = null;
+                            cfg.left = null;
+                            cfg.right = null;
                         }
-                        gameconfig.current_key = 'left';
-                        var cfg = gameconfig.bindings[idx];
-                        cfg.type = null;
-                        cfg.left = null;
-                        cfg.right = null;
+                    } else if ('ESCAPE' === key) {
+                        state = 'init';
                     }
                 } else {
                     if (null != gameconfig.current_player) {
                         var cfg = gameconfig.bindings[gameconfig.current_player];
-                        if ('left' == gameconfig.current_key && gameconfig.is_key_free(key)) {
+                        if ('ESCAPE' === key) {
+                                gameconfig.current_player = null;
+                                gameconfig.current_key = null;
+                        } else if ('left' == gameconfig.current_key && gameconfig.is_key_free(key)) {
                             cfg.left = key;
                             gameconfig.current_key = 'right';
                         } else if ('right' == gameconfig.current_key && gameconfig.is_key_free(key)) {
                             cfg.right = key;
                             gameconfig.current_key = null;
+                            gameconfig.current_player = null;
                             cfg.type = 'human';
                         }
                     }
@@ -1218,14 +1224,22 @@ function GameConfig(){
         for (var i=0; i< this.bindings.length; i++) {
             cfg = this.bindings[i];
             var color = cfg.color;
+            if (this.current_player == i) {
+                c.fillStyle = 'white';
+                if ('left' === this.current_key) {
+                    c.fillRect(cw2-40, ch2-150 + 12+ (i+1)*40, 180,4);
+                } else if ('right' === this.current_key) {
+                    c.fillRect(cw2-40+180, ch2-150 + 12+ (i+1)*40, 180,4);
+                }
+            }
             var active = cfg.type || this.current_player == i;
             var alpha = active ? 1.0 : 0.3;
             c.fillStyle = rgba(color.r, color.g, color.b, alpha);
             c.fillText( (i+1) + " " + cfg.name, cw2-250, ch2-150 + 10 + (i+1)*40);
-            c.fillStyle = rgba(color.r, color.g, color.b, (cfg.left || this.current_key === 'left' && active) ? 1.0: 0.5);
-            c.fillText(cfg.left ? cfg.left : (active ? '?' : ''), cw2-40, ch2-150 + 10 + (i+1)*40);
-            c.fillStyle = rgba(color.r, color.g, color.b, (cfg.right || this.current_key === 'right' && active) ? 1: 0.5);
-            c.fillText(cfg.right ? cfg.right : (active ? '?' : ''), cw2+140, ch2-150 + 10 + (i+1)*40);
+            c.fillStyle = rgba(color.r, color.g, color.b, active ? 1.0: 0.5);
+            c.fillText(cfg.left ? cfg.left : '', cw2-40, ch2-150 + 10 + (i+1)*40);
+            c.fillStyle = rgba(color.r, color.g, color.b, active ? 1: 0.5);
+            c.fillText(cfg.right ? cfg.right : '', cw2+140, ch2-150 + 10 + (i+1)*40);
         }
         c.textAlign = "center";
         c.fillStyle = "white";
