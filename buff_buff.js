@@ -714,6 +714,7 @@ function Board() {
     this.time = 0;
     this.endless = 0;
     this.border_size = 10;
+    this.nebula = 0;
     this.sound = sounds['forcefield']();
     this.draw = function() {
         var ctx = this.space_ctx;
@@ -728,6 +729,10 @@ function Board() {
             this.sound.play();
         } else {
             this.sound.pause();
+        }
+        if (this.nebula >= 1) {
+            c.fillStyle = rgba(0,0,0, 0.9 - Math.pow(0.2, this.nebula));
+            c.fillRect(cw2 - this.w/2, ch2 - this.w/2, cw2 + this.w/2, ch2 + this.h/2);
         }
     };
     this.move = function(){
@@ -875,6 +880,7 @@ function PowerUps() {
         for (i=0; i<attempts; i++) {
             var p;
             var rnd = getRandomInt(11);
+            rnd = 11;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -887,6 +893,7 @@ function PowerUps() {
                 case 8: p = new PowerUpRectOther(); break;
                 case 9: p = new PowerUpFlippedOther(); break;
                 case 10: p = new PowerUpBombOther(); break;
+                case 11: p = new PowerUpNebula(); break;
             }
             p.x = (Math.random()-0.5)*(board.w-2*p.radius);
             p.y = (Math.random()-0.5)*(board.h-2*p.radius);
@@ -1133,6 +1140,19 @@ function PowerUpFluffy() {
     };
     this.release = function(pl) {
         board.endless -= 1;
+    };
+}
+
+PowerUpNebula.prototype = new PowerUpBase('neutral');
+PowerUpNebula.prototype.constructor = PowerUpNebula;
+function PowerUpNebula() {
+    this.img.src = "img/font-awesome/svg/light45.svg";
+    this.sound = sounds['howl_short']();
+    this.upgrade = function(pl) {
+        board.nebula += 1;
+    };
+    this.release = function(pl) {
+        board.nebula -= 1;
     };
 }
 
