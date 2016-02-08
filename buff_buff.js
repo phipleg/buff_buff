@@ -636,10 +636,6 @@ function Player(name, color, score){
         }
         var min_age = 4 * (this.size+1) * 1.0 / this.v
         hits = board.get_hits(points, min_age);
-        if (hits.length > 0) {
-            console.log(hits);
-        }
-
         return hits.length > 0;
     };
 }
@@ -1023,7 +1019,7 @@ function PowerUpThinner() {
 PowerUpFaster.prototype = new PowerUpBase('positive');
 PowerUpFaster.prototype.constructor = PowerUpFaster;
 function PowerUpFaster() {
-    this.img.src = "img/font-awesome/svg/lightning14.svg";
+    this.img.src = "img/font-awesome/svg/dashboard2.svg";
     this.upgrade = function(pl) {
         pl.v *= 2.0;
     };
@@ -1095,7 +1091,7 @@ function PowerUpFlippedOther() {
 PowerUpFluffy.prototype = new PowerUpBase('neutral');
 PowerUpFluffy.prototype.constructor = PowerUpFluffy;
 function PowerUpFluffy() {
-    this.img.src = "img/font-awesome/svg/fluffy1.svg";
+    this.img.src = "img/font-awesome/svg/lightning14.svg";
     this.upgrade = function(pl) {
         board.endless += 1;
     };
