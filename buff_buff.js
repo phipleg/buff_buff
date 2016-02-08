@@ -459,13 +459,6 @@ function Player(name, color, score){
     this.transparent = 0;
     this.rectangular = 0;
     this.flipped = 0;
-    if (name == 'Fred') {
-        this.size = 20;
-        this.rectangular = 10;
-        this.v = 1;
-    } else {
-        this.transparent = 10;
-    }
     this.crash_sound = sounds['crash']();
     this.draw = function(){
         var default_head_color = this.flipped > 0 ? "blue" : "yellow";
@@ -587,7 +580,7 @@ function Player(name, color, score){
     };
     this.surface_points = function(new_x, new_y) {
         var points = [];
-        var radius = this.size -1;
+        var radius = this.size - 2;
         if (this.rectangular >= 1) {
             var sx = new_x;
             var sy = new_y;
@@ -625,8 +618,13 @@ function Player(name, color, score){
         for (var i=0; i<points.length-1; i+=2) {
             powerups.pick_from(this, points[i], points[i+1]);
         }
-        var min_age = 10 + 2 * this.size * 1.0 / this.v
-        return !board.is_empty_at(points, min_age);
+        var min_age = 4 * (this.size+1) * 1.0 / this.v
+        hits = board.get_hits(points, min_age);
+        if (hits.length > 0) {
+            console.log(hits);
+        }
+
+        return hits.length > 0;
     };
 }
 
@@ -703,6 +701,7 @@ function Board() {
     this.collision_ctx = this.collision_canvas.getContext("2d");
     this.time = 0;
     this.endless = 0;
+    this.border_size = 10;
     this.sound = sounds['forcefield']();
     this.draw = function() {
         var ctx = this.space_ctx;
@@ -710,7 +709,7 @@ function Board() {
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
         if (this.endless >= 1) {
             c.beginPath();
-            c.lineWidth="4";
+            c.lineWidth=this.border_size;
             c.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
             c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
             c.stroke();
@@ -725,7 +724,7 @@ function Board() {
         }
         var ctx = this.space_ctx;
         ctx.beginPath();
-        ctx.lineWidth="4";
+        ctx.lineWidth=this.border_size;
         if (this.endless == 0) {
             ctx.strokeStyle="yellow";
         } else {
@@ -735,7 +734,7 @@ function Board() {
         ctx.stroke();
         ctx = this.collision_ctx;
         ctx.beginPath();
-        ctx.lineWidth="4";
+        ctx.lineWidth=this.border_size;
         if (this.endless == 0) {
             ctx.strokeStyle=rgba(0, 1, 255, 1.0);
         } else {
@@ -757,7 +756,7 @@ function Board() {
         ctx.lineWidth = lineWidth;
         ctx.moveTo(x1+this.w/2, y1+this.h/2);
         ctx.quadraticCurveTo(x2+this.w/2,y2+this.h/2,x3+this.w/2,y3+this.h/2);
-        var t = Math.floor(board.time / 10);
+        var t = Math.floor(board.time / 2);
         var r = Math.floor(t / 256);
         var g = Math.floor(t % 256);
         var b = 255;
@@ -793,7 +792,7 @@ function Board() {
         }
         return {x1: x1, y1: y1, y2: y2, width: x2-x1+1, height: y2-y1+1};
     };
-    this.is_empty_at = function(point_data, min_age) {
+    this.get_hits = function(point_data, min_age) {
         var box = this.get_enclosing_box(point_data);
         var imDat = this.collision_ctx.getImageData(box.x1,box.y1,box.width,box.height);
         hits = [];
@@ -806,16 +805,15 @@ function Board() {
             var r = imDat.data[4*j+0];
             var g = imDat.data[4*j+1];
             var b = imDat.data[4*j+2];
-            var point_created = 10 * (r*256+g);
-            var age = board.time - point_created;
-            if (age > min_age && point_created != 0) {
-                hit = {p:{x:x, y:y}, r:r, g:g, b:b, age: age};
+            var point_created = 2 * (r*256+g);
+            var age = point_created != 0 ? board.time - point_created : 0.0;
+            if (age > min_age) {
+                hit = {x:x, y:y, age: age};
                 hits.push(hit);
-                console.log(hit);
             }
         }
         imDat.data = null;
-        return hits.length == 0;
+        return hits;
     };
     this.project = function(x, y) {
         if (x < -this.w/2 || x >= this.w/2 || y < -this.h/2 || y >= this.h/2) {
