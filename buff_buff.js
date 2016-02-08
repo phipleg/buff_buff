@@ -1215,7 +1215,19 @@ function GameReady(){
 }
 
 function GameStart(){
+    this.time = 0;
     this.draw = function(){
+        c.fillStyle = 'yellow';
+        for (var i=10; i<canvas.width/10; i++) {
+            var x = i*10 + 10*Math.sin(0.1*this.time);
+            var y = (this.time  + 0.5*canvas.height*Math.sin(10 * i) - 0.5*canvas.height) % canvas.height;
+            c.fillStyle = rgba(Math.floor(128 + 128*Math.sin(2*(this.time+i)*0.1)),
+                               Math.floor(128 + 128*Math.sin(3*(this.time+i)*0.1)),
+                               Math.floor(128+128*Math.sin(5*(this.time+i)*0.1)), 0.9);
+            c.fillRect(x, 0, 10+1, y);
+            c.fillStyle = 'yellow';
+            c.fillRect(x, y, 10+1, 10);
+        }
         c.textAlign = "center";
         c.fillStyle = "white";
         c.font = "100px pixelfont";
@@ -1225,7 +1237,9 @@ function GameStart(){
         c.font = "10px pixelfont";
         c.fillText("Sound by freesfx.co.uk", cw2, ch2*2 - 20)
     };
-    this.move = function(){}
+    this.move = function(){
+        this.time += 1;
+    };
 }
 
 function GameConfig(){
