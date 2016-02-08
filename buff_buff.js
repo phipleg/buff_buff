@@ -366,12 +366,12 @@ function transition(keyCode, keydown) {
         if ('SPACE' === key) {
             universe = [players, powerups, board, info, background];
             state = 'playing';
-        } else if ('ESC' == key) {
+        } else if ('ESCAPE' == key) {
             universe = [gameconfig, background];
             state = 'config';
         }
     } else if ('playing' === state) {
-        if ('ESC' === key || 'SPACE' === key) {
+        if ('ESCAPE' === key || 'SPACE' === key) {
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
             state = 'pause';
@@ -393,7 +393,7 @@ function transition(keyCode, keydown) {
             }
         }
     } else if ('pause' === state) {
-        if ('ESC' === key) {
+        if ('ESCAPE' === key) {
             universe = [gameconfig, background];
             state = 'config';
         } else if ('SPACE' === key) {
@@ -1238,7 +1238,7 @@ function GameConfig(){
         {name: 'Greenly', left: null, right: null,color: { r: 124, g: 252, b: 0}, type: null},
         {name: 'Pinkney', left: null, right: null, color: { r: 255, g: 105, b: 180}, type: null},
         {name: 'Bluebell', left: null, right: null, color: { r: 0, g: 191, b: 155}, type: null},
-        {name: 'Willem', left: null, right: null, color: { r: 255, g: 140, b: 0}, type: null},
+        {name: 'Willem', left: null, right: null, color: { r: 153, g: 51, b: 0}, type: null},
         {name: 'Greydon', left: null, right: null, color: { r: 119, g: 136, b: 153}, type: null},
         {name: 'Goldy', left: null, right: null, color: { r: 218, g: 165, b: 32}, type: null},
         {name: 'Slate', left: null, right: null, color: { r: 123, g: 104, b: 238}, type: null}
