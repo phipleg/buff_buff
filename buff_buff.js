@@ -884,7 +884,6 @@ function PowerUps() {
         for (i=0; i<attempts; i++) {
             var p;
             var rnd = getRandomInt(11);
-            rnd = 11;
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
