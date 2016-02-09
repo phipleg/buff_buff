@@ -883,7 +883,7 @@ function PowerUps() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
             var p;
-            var rnd = getRandomInt(11);
+            var rnd = getRandomInt(12);
             switch(rnd) {
                 case 0: p = new PowerUpFaster(); break;
                 case 1: p = new PowerUpSlower(); break;
@@ -1274,7 +1274,7 @@ function GameConfig(){
         {name: 'Greenly', left: null, right: null,color: { r: 124, g: 252, b: 0}, type: null},
         {name: 'Pinkney', left: null, right: null, color: { r: 255, g: 105, b: 180}, type: null},
         {name: 'Bluebell', left: null, right: null, color: { r: 0, g: 191, b: 155}, type: null},
-        {name: 'Willem', left: null, right: null, color: { r: 153, g: 51, b: 0}, type: null},
+        {name: 'Willem', left: null, right: null, color: { r: 255, g: 102, b: 0}, type: null},
         {name: 'Greydon', left: null, right: null, color: { r: 119, g: 136, b: 153}, type: null},
         {name: 'Goldy', left: null, right: null, color: { r: 218, g: 165, b: 32}, type: null},
         {name: 'Slate', left: null, right: null, color: { r: 123, g: 104, b: 238}, type: null}
