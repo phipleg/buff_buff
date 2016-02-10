@@ -35,10 +35,10 @@ function transition(keyCode, keydown) {
         gameconfig = new GameConfig();
         gamestart = new GameStart();
         state = 'menu';
-        universe = [gamestart, background];
+        universe = [background, gamestart];
     } else if ('menu' === state) {
         if ('SPACE' === key) {
-            universe = [gameconfig, background];
+            universe = [background, gameconfig];
             state = 'config';
         }
     } else if ('config' === state) {
@@ -52,7 +52,7 @@ function transition(keyCode, keydown) {
                 gamepause = new GamePause();
                 players = new PlayerList();
                 players.deploy();
-                universe = [gameready, players, powerups, board, info, background];
+                universe = [background, info, board, powerups, players, gameready];
                 state = 'ready';
             }
         } else {
@@ -98,7 +98,7 @@ function transition(keyCode, keydown) {
         }
     } else if ('ready' === state) {
         if ('SPACE' === key) {
-            universe = [players, powerups, board, info, background];
+            universe = [background, info, board, powerups, players];
             state = 'playing';
         } else if ('ESCAPE' == key) {
             universe = [gameconfig, background];
@@ -107,7 +107,7 @@ function transition(keyCode, keydown) {
     } else if ('playing' === state) {
         if (1 >= players.count_alive()) {
             if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
-                universe = [gameover, players, powerups, board, info, background];
+                universe = [background, info, board, powerups, players, gameover];
                 state = 'game_over';
             } else {
                 state = 'round_over';
@@ -115,7 +115,7 @@ function transition(keyCode, keydown) {
         }
         if ('ESCAPE' === key || 'SPACE' === key) {
             prev_universe = universe;
-            universe = [gamepause, players, powerups, board, info, background];
+            universe = [background, info, board, powerups, players, gamepause];
             state = 'pause';
         } else {
             for (var i=0; i<gameconfig.bindings.length; i++) {
@@ -136,7 +136,7 @@ function transition(keyCode, keydown) {
         }
     } else if ('pause' === state) {
         if ('ESCAPE' === key) {
-            universe = [gameconfig, background];
+            universe = [background, gameconfig];
             state = 'config';
         } else if ('SPACE' === key) {
             universe = prev_universe;
@@ -144,7 +144,7 @@ function transition(keyCode, keydown) {
         }
     } else if ('game_over' === state) {
         if ('SPACE' == key) {
-            universe = [gameconfig, background];
+            universe = [background, gameconfig];
             state = 'config';
         }
     } else if ('round_over' === state) {
@@ -161,13 +161,8 @@ function transition(keyCode, keydown) {
 function run() {
     setInterval(function() {
         transition();
-
-        for (var i = universe.length-1; i >= 0; i--) {
-            universe[i].draw();
-        }
-        for (var i = universe.length-1; i >= 0; i--) {
-            universe[i].move();
-        }
+        _.each(universe, function(el) { el.draw(); });
+        _.each(universe, function(el) { el.move(); });
     }, 28);
 }
 
@@ -392,22 +387,13 @@ function PlayerList() {
         return copy;
     };
     this.count_alive = function() {
-        var result = 0;
-        for (var i=0; i<this.list.length; i++) {
-            if (this.list[i].alive) {
-                result += 1;
-            }
-        }
-        return result;
+        return _.countBy(this.list, function(pl) { return pl.alive ? 'alive': 'dead'; }).alive;
     };
     this.move = function() {
         if (state != 'playing') {
             return;
         }
-        for (var i=0; i<this.list.length; i++) {
-            var pl = this.list[i];
-            pl.move();
-        }
+        _.each(this.list, function(pl) { pl.move(); });
         for (var i=0; i<this.list.length; i++) {
             var pl = this.list[i];
             if (pl.hit) {
@@ -421,9 +407,7 @@ function PlayerList() {
         }
     };
     this.draw = function() {
-        for (var i=0; i<this.list.length; i++) {
-            this.list[i].draw();
-        }
+        _.each(this.list, function(pl) { pl.draw(); });
     };
 }
 
@@ -637,13 +621,12 @@ function PowerUps() {
         if (!other_radius) {
             other_radius = 0;
         }
-        for (var i=this.available.length-1; i>=0; i--) {
-            var p = this.available[i];
+        _.each(this.available, function(p) {
             var d = dist(x,y,p.x,p.y) - p.radius - other_radius;
             if (d <= 0) {
                 result.push(p);
             }
-        }
+        });
         return result;
     };
     this.pick_from = function(pl, x, y) {
@@ -659,9 +642,7 @@ function PowerUps() {
         }
     };
     this.draw = function(){
-        for (var i=0; i<this.available.length; i++) {
-            this.available[i].draw();
-        }
+        _.each(this.available, function(p) { p.draw(); });
     };
     this.move = function(){
         if (state != 'playing') {
@@ -671,9 +652,7 @@ function PowerUps() {
         if (Math.random() < 1.0/(200. + (x+2)*(x+2))) {
             this.add();
         }
-        for (var i=0; i<this.available.length; i++) {
-            this.available[i].move();
-        }
+        _.each(this.available, function(p) { p.move(); });
         for (var i=this.taken.length-1; i>=0; i--) {
             var p = this.taken[i];
             p.move();
@@ -864,7 +843,6 @@ function Background() {
     };
     this.move = function(){};
 }
-
 
 function Info(){
     this.draw = function(){
