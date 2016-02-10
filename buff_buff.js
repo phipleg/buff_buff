@@ -6,7 +6,6 @@ window.onload = function(){
     ch2 = Math.floor(canvas.height/2);
     cw2 = Math.floor(canvas.width/2);
     state = 'init';
-    transition();
     run();
 
     window.addEventListener("keydown", function (e) {
@@ -153,8 +152,8 @@ function transition(keyCode, keydown) {
 
 function run() {
     setInterval(function() {
-        render();
         transition();
+        render();
 
         for (var i = universe.length-1; i >= 0; i--) {
             object = universe[i];
@@ -473,8 +472,6 @@ function Board() {
     this.move = function(){
         if (state == 'playing') {
             this.time += 1;
-        } else {
-            return;
         }
         var ctx = this.space_ctx;
         ctx.beginPath();
