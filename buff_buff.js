@@ -1272,7 +1272,7 @@ function GameConfig(){
     this.bindings = [
         {name: 'Fred', left: null, right: null, color: { r: 255, g: 0, b: 0}, type: null},
         {name: 'Greenly', left: null, right: null,color: { r: 124, g: 252, b: 0}, type: null},
-        {name: 'Pinkney', left: null, right: null, color: { r: 255, g: 105, b: 180}, type: null},
+        {name: 'Pinkney', left: null, right: null, color: { r: 255, g: 0, b: 255}, type: null},
         {name: 'Bluebell', left: null, right: null, color: { r: 0, g: 191, b: 155}, type: null},
         {name: 'Willem', left: null, right: null, color: { r: 255, g: 102, b: 0}, type: null},
         {name: 'Greydon', left: null, right: null, color: { r: 119, g: 136, b: 153}, type: null},
