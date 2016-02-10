@@ -432,11 +432,6 @@ function Board() {
         var imDat = ctx.getImageData(0,0,this.w,this.h);
         c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
         if (this.endless >= 1) {
-            c.beginPath();
-            c.lineWidth=this.border_size;
-            c.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
-            c.rect(-this.w/2+cw2, -this.h/2+ch2, this.w, this.h);
-            c.stroke();
             this.sound.play();
         } else {
             this.sound.pause();
@@ -456,7 +451,7 @@ function Board() {
         if (this.endless == 0) {
             ctx.strokeStyle="yellow";
         } else {
-            ctx.strokeStyle="black";
+            ctx.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
         }
         ctx.rect(0, 0, this.w, this.h);
         ctx.stroke();
