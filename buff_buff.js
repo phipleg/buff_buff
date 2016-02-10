@@ -552,25 +552,23 @@ function Board() {
         return hits;
     };
     this.project = function(x, y) {
-        if (x < -this.w/2 || x >= this.w/2 || y < -this.h/2 || y >= this.h/2) {
-            if (this.endless >= 1) {
-                if (x < -this.w/2) {
-                    x += this.w;
-                }
-                if (x >= this.w/2) {
-                    x -= this.w;
-                }
-                if (y < -this.h/2) {
-                    y += this.h;
-                }
-                if (y >= this.h/2) {
-                    y -= this.h;
-                }
-            } else {
-                x = clip(x, -this.w/2, this.w/2);
-                y = clip(y, -this.h/2, this.h/2);
+        x += this.w/2;
+        y += this.h/2;
+        if (this.endless >= 1) {
+            x = x % this.w;
+            if (x < 0) {
+                x += this.w;
             }
+            y = y % this.h;
+            if (y < 0) {
+                y += this.h;
+            }
+        } else {
+            x = clip(x, 0, this.w);
+            y = clip(y, 0, this.h);
         }
+        x -= this.w/2;
+        y -= this.h/2;
         return {x:x, y:y};
     };
 }
