@@ -164,8 +164,7 @@ function run() {
         render();
 
         for (var i = universe.length-1; i >= 0; i--) {
-            object = universe[i];
-            object.move();
+            universe[i].move();
         }
     }, 25);
 }
@@ -269,7 +268,7 @@ function Player(name, color, score){
             return;
         }
         this.has_protection = this.distance < 100;
-        var gap_factor = 3 * this.size*10;
+        var gap_factor = 3 * this.size*10 + 10;
         if (false == this.has_hole) {
             if (this.distance > this.last_track_distance + 10 * this.size) {
                 this.has_hole = Math.random() > 0.98;
