@@ -899,7 +899,6 @@ function GameReady(){
 function GameStart(){
     this.time = 0;
     this.draw = function(){
-        c.fillStyle = 'yellow';
         for (var i=10; i<canvas.width/10; i++) {
             var x = i*10 + 10*Math.sin(0.1*this.time);
             var y = (this.time  + 0.5*canvas.height*Math.sin(10 * i) - 0.5*canvas.height) % canvas.height;
