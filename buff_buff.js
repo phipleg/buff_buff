@@ -161,18 +161,14 @@ function transition(keyCode, keydown) {
 function run() {
     setInterval(function() {
         transition();
-        render();
 
+        for (var i = universe.length-1; i >= 0; i--) {
+            universe[i].draw();
+        }
         for (var i = universe.length-1; i >= 0; i--) {
             universe[i].move();
         }
-    }, 25);
-}
-
-function render() {
-    for (var i = universe.length-1; i >= 0; i--) {
-        universe[i].draw();
-    }
+    }, 28);
 }
 
 function Player(name, color, score){
@@ -187,8 +183,8 @@ function Player(name, color, score){
     this.to_right = false;
     this.angle = Math.random() * 2 * Math.PI;
     this.v = 2;
-    this.x = (Math.random()-0.5)*(board.w-100);
-    this.y = (Math.random()-0.5)*(board.h-100);
+    this.x = (Math.random()-0.5)*(board.w-200);
+    this.y = (Math.random()-0.5)*(board.h-200);
     this.x1 = this.x;
     this.y1 = this.y;
     this.distance = 0;
@@ -728,9 +724,7 @@ function PowerUpBase(kind) {
         return this.age > this.max_age;
     };
     this.move = function(){
-        if (null != this.owner) {
-            this.age += 1;
-        }
+        this.age += 1;
     };
     this.other_players = function(pl, collector) {
         for (var i=0; i<players.list.length; i++) {
@@ -748,12 +742,8 @@ PowerUpThicker.prototype.constructor = PowerUpThicker;
 function PowerUpThicker() {
     this.img.src = "img/font-awesome/svg/plus26.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.size *= 2.0;
-    };
-    this.release = function(pl) {
-        pl.size /= 2.0;
-    };
+    this.upgrade = function(pl) { pl.size *= 2.0; };
+    this.release = function(pl) { pl.size /= 2.0; };
 }
 
 PowerUpThinner.prototype = new PowerUpBase('positive');
@@ -761,12 +751,8 @@ PowerUpThinner.prototype.constructor = PowerUpSlower;
 function PowerUpThinner() {
     this.img.src = "img/font-awesome/svg/minus20.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.size *= 0.5;
-    };
-    this.release = function(pl) {
-        pl.size /= 0.5;
-    };
+    this.upgrade = function(pl) { pl.size *= 0.5; };
+    this.release = function(pl) { pl.size /= 0.5; };
 }
 
 PowerUpFaster.prototype = new PowerUpBase('positive');
@@ -774,12 +760,8 @@ PowerUpFaster.prototype.constructor = PowerUpFaster;
 function PowerUpFaster() {
     this.img.src = "img/font-awesome/svg/dashboard2.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.v *= 2.0;
-    };
-    this.release = function(pl) {
-        pl.v /= 2.0;
-    };
+    this.upgrade = function(pl) { pl.v *= 2.0; };
+    this.release = function(pl) { pl.v /= 2.0; };
 }
 
 PowerUpSlower.prototype = new PowerUpBase('positive');
@@ -787,12 +769,8 @@ PowerUpSlower.prototype.constructor = PowerUpSlower;
 function PowerUpSlower() {
     this.img.src = "img/font-awesome/svg/bug6.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.v *= 0.5;
-    };
-    this.release = function(pl) {
-        pl.v /= 0.5;
-    };
+    this.upgrade = function(pl) { pl.v *= 0.5; };
+    this.release = function(pl) { pl.v /= 0.5; };
 }
 
 PowerUpFlight.prototype = new PowerUpBase('positive');
@@ -800,12 +778,8 @@ PowerUpFlight.prototype.constructor = PowerUpFlight;
 function PowerUpFlight() {
     this.img.src = "img/font-awesome/svg/plane12.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.transparent += 1;
-    };
-    this.release = function(pl) {
-        pl.transparent -= 1;
-    };
+    this.upgrade = function(pl) { pl.transparent += 1; };
+    this.release = function(pl) { pl.transparent -= 1; };
 }
 
 PowerUpRect.prototype = new PowerUpBase('positive');
@@ -813,12 +787,8 @@ PowerUpRect.prototype.constructor = PowerUpRect;
 function PowerUpRect() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        pl.rectangular += 1;
-    };
-    this.release = function(pl) {
-        pl.rectangular -= 1;
-    };
+    this.upgrade = function(pl) { pl.rectangular += 1; };
+    this.release = function(pl) { pl.rectangular -= 1; };
 }
 
 PowerUpRectOther.prototype = new PowerUpBase('negative');
@@ -853,8 +823,7 @@ function PowerUpBombOther() {
     this.img.src = "img/font-awesome/svg/time7.svg";
     this.sound = new Audio('sounds/time_bomb.mp3');
     this.max_age = 120;
-    this.upgrade = function(pl) {
-    };
+    this.upgrade = function(pl) { };
     this.release = function(pl) {
         board.add_circle(this.x, this.y, 100, 'orange');
         board.add_circle(this.x, this.y, 80, 'red');
@@ -866,12 +835,8 @@ PowerUpFluffy.prototype.constructor = PowerUpFluffy;
 function PowerUpFluffy() {
     this.img.src = "img/font-awesome/svg/lightning14.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        board.endless += 1;
-    };
-    this.release = function(pl) {
-        board.endless -= 1;
-    };
+    this.upgrade = function(pl) { board.endless += 1; };
+    this.release = function(pl) { board.endless -= 1; };
 }
 
 PowerUpNebula.prototype = new PowerUpBase('neutral');
@@ -879,12 +844,8 @@ PowerUpNebula.prototype.constructor = PowerUpNebula;
 function PowerUpNebula() {
     this.img.src = "img/font-awesome/svg/light45.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        board.nebula += 1;
-    };
-    this.release = function(pl) {
-        board.nebula -= 1;
-    };
+    this.upgrade = function(pl) { board.nebula += 1; };
+    this.release = function(pl) { board.nebula -= 1; };
 }
 
 PowerUpClear.prototype = new PowerUpBase('neutral');
@@ -892,11 +853,8 @@ PowerUpClear.prototype.constructor = PowerUpClear;
 function PowerUpClear() {
     this.img.src = "img/font-awesome/svg/heart75.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        board.clear();
-    };
-    this.release = function(pl) {
-    };
+    this.upgrade = function(pl) { board.clear(); };
+    this.release = function(pl) {};
 }
 
 function Background() {
@@ -1069,13 +1027,9 @@ function GameConfig(){
     this.move = function(){}
 }
 
-function getRandomInt(n) {
-    return Math.floor(Math.random() * n);
-}
+function getRandomInt(n) { return Math.floor(Math.random() * n); }
 
-function clip(x, min, max) {
-    return Math.max(min, Math.min(max-1,x));
-}
+function clip(x, min, max) { return Math.max(min, Math.min(max-1,x)); }
 
 function dist(x1, y1, x2, y2) {
     var dx = x1 - x2;
@@ -1083,6 +1037,4 @@ function dist(x1, y1, x2, y2) {
     return Math.sqrt(dx*dx+dy*dy);
 }
 
-function rgba(r,g,b,a) {
-    return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')';
-}
+function rgba(r,g,b,a) { return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')'; }
