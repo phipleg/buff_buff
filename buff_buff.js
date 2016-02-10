@@ -105,6 +105,14 @@ function transition(keyCode, keydown) {
             state = 'config';
         }
     } else if ('playing' === state) {
+        if (1 >= players.count_alive()) {
+            if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
+                universe = [gameover, players, powerups, board, info, background];
+                state = 'game_over';
+            } else {
+                state = 'round_over';
+            }
+        }
         if ('ESCAPE' === key || 'SPACE' === key) {
             prev_universe = universe;
             universe = [gamepause, players, powerups, board, info, background];
@@ -158,16 +166,6 @@ function run() {
         for (var i = universe.length-1; i >= 0; i--) {
             object = universe[i];
             object.move();
-        }
-        if ('playing' == state) {
-            if (1 >= players.count_alive()) {
-                if (players.sorted()[0].score >= Math.max(players.goal, players.sorted()[1].score+2)) {
-                    universe = [gameover, players, powerups, board, info, background];
-                    state = 'game_over';
-                } else {
-                    state = 'round_over';
-                }
-            }
         }
     }, 25);
 }
