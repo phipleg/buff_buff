@@ -35,6 +35,11 @@ function transition(keyCode, keydown) {
         background = new Background();
         gameconfig = new GameConfig();
         gamestart = new GameStart();
+        info = new Info();
+        gameready = new GameReady();
+        gameover = new GameOver();
+        gamepause = new GamePause();
+        players = null;
         state = 'menu';
         universe = [background, gamestart];
     } else if ('menu' === state) {
@@ -42,19 +47,18 @@ function transition(keyCode, keydown) {
             universe = [background, gameconfig];
             state = 'config';
         }
+    } else if ('pre_ready' === state) {
+        if (null == key) {
+            board = new Board();
+            powerups = new PowerUps();
+            players = new PlayerList(players);
+            universe = [background, info, board, powerups, players, gameready];
+            state = 'ready';
+        }
     } else if ('config' === state) {
         if ('SPACE' === key) {
             if (gameconfig.valid) {
-                board = new Board();
-                info = new Info();
-                powerups = new PowerUps();
-                gameready = new GameReady();
-                gameover = new GameOver();
-                gamepause = new GamePause();
-                players = new PlayerList();
-                players.deploy();
-                universe = [background, info, board, powerups, players, gameready];
-                state = 'ready';
+                state = 'pre_ready';
             }
         } else {
             if (null != key && keydown) {
@@ -150,10 +154,10 @@ function transition(keyCode, keydown) {
         }
     } else if ('round_over' === state) {
         if ('SPACE' == key) {
-            board.reset();
-            powerups.reset();
-            players.deploy();
-            state = 'ready';
+            //board.reset();
+            //powerups.reset();
+            //players.deploy();
+            state = 'pre_ready';
         }
     }
     if (prevState != state) {
@@ -177,7 +181,6 @@ function Player(name, color, score){
     this.tail_color = rgba(this.color.r, this.color.g, this.color.b);
     this.score = score;
     this.alive = true;
-    this.hit = false;
     this.size = 3;
     this.to_left = false;
     this.to_right = false;
@@ -198,10 +201,15 @@ function Player(name, color, score){
     this.crash_sound = new Audio("sounds/car_crash.mp3");
     this.draw = function() {
         if (false == this.alive) {
+            if (this.hit_time > board.time - 200) {
+                var a = 1.0 - (board.time - this.hit_time) / 200.0;
+                var col = rgba(this.color.r, this.color.g, this.color.b, a);
+                circle(c, this.x + cw2, this.y + ch2, 20, col);
+            }
             fillCircle(c, this.x+cw2, this.y+ch2, this.size, 'yellow');
             if (this.collision_points) {
                 _.each(this.collision_points, function(p) {
-                    fillCircle(c, p.x+cw2, p.y+ch2, 1, 'black');
+                    circle(c, p.x+cw2, p.y+ch2, 1, 'black');
                 });
             }
             return;
@@ -255,7 +263,6 @@ function Player(name, color, score){
         return acc;
     };
     this.move = function(){
-        this.hit = false;
         if (!this.alive) {
             return;
         }
@@ -299,7 +306,7 @@ function Player(name, color, score){
         var hits = this.collision_detection(x0, y0)
         if (hits.length > 0 && this.has_track && !this.has_protection) {
             this.collision_points = hits;
-            this.hit = true;
+            this.hit_time = board.time;
             this.alive = false;
             this.crash_sound.play();
         }
@@ -361,22 +368,20 @@ function Player(name, color, score){
     };
 }
 
-function PlayerList() {
+function PlayerList(prevPlayers) {
     this.list = [];
-    this.deploy = function() {
-        var old_list = this.list;
-        this.list = [];
-        for (var i=0; i<gameconfig.bindings.length; i++) {
-            var cfg = gameconfig.bindings[i];
-            var old_pl = _.find(old_list, function(pl) { return cfg.name === pl.name; });
-            var score = old_pl ? old_pl.score : 0.0;
-            if ('human' == cfg.type) {
-                var pl = new Player(cfg.name, cfg.color, score);
-                this.list.push(pl);
-            }
+    var old_list = prevPlayers ? prevPlayers.list : [];
+    this.list = [];
+    for (var i=0; i<gameconfig.bindings.length; i++) {
+        var cfg = gameconfig.bindings[i];
+        var old_pl = _.find(old_list, function(pl) { return cfg.name === pl.name; });
+        var score = old_pl ? old_pl.score : 0.0;
+        if ('human' == cfg.type) {
+            var pl = new Player(cfg.name, cfg.color, score);
+            this.list.push(pl);
         }
-        this.goal = 10 * (this.list.length - 1);
-    };
+    }
+    this.goal = 10 * (this.list.length - 1);
     this.find = function(playerName) {
         return _.find(this.list, function(pl) { return playerName === pl.name; });
     };
@@ -393,17 +398,17 @@ function PlayerList() {
             return;
         }
         _.each(this.list, function(pl) { pl.move(); });
-        for (var i=0; i<this.list.length; i++) {
-            var pl = this.list[i];
-            if (pl.hit) {
-                for (var j=0; j<this.list.length; j++) {
-                    other = this.list[j];
+        var all = this.list;
+        _.each(this.list, function(pl) {
+            if (pl.hit_time == board.time) {
+                for (var j=0; j<all.length; j++) {
+                    other = all[j];
                     if (other.alive) {
                         other.score += 1;
                     }
                 }
             }
-        }
+        });
     };
     this.eachExcept = function(pl0, collector) {
         _.each(this.list, function(pl) {
