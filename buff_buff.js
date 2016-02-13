@@ -170,7 +170,7 @@ function run() {
 function Player(name, color, score){
     this.name = name;
     this.color = color;
-    this.tail_color = rgba(this.color.r, this.color.g, this.color.b, 1);
+    this.tail_color = rgba(this.color.r, this.color.g, this.color.b);
     this.score = score;
     this.alive = true;
     this.hit = false;
@@ -192,16 +192,13 @@ function Player(name, color, score){
     this.rectangular = 0;
     this.flipped = 0;
     this.crash_sound = new Audio("sounds/car_crash.mp3");
-    this.draw = function(){
-        var default_head_color = this.flipped > 0 ? "blue" : "yellow";
-        this.head_color = this.has_protection ? this.tail_color : default_head_color;
-        if (!this.alive) {
-            c.beginPath();
-            c.arc(this.x+cw2, this.y+ch2, 3+this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
-            c.fillStyle = this.head_color;
-            c.fill();
+    this.draw = function() {
+        if (false == this.alive) {
+            fillCircle(c, this.x+cw2, this.y+ch2, this.size, 'yellow');
             return;
         }
+        var default_head_color = this.alive && this.flipped > 0 ? "blue" : "yellow";
+        this.head_color = this.has_protection ? this.tail_color : default_head_color;
         if (this.rectangular >= 1) {
             c.beginPath();
             var x = this.x + cw2;
@@ -231,15 +228,10 @@ function Player(name, color, score){
                 c.stroke();
             }
         } else {
-            c.beginPath();
-            c.arc(this.x+cw2, this.y+ch2, this.size, this.angle - 1*Math.PI, this.angle + 1*Math.PI, false);
             if (this.transparent == 0) {
-                c.fillStyle = this.head_color;
-                c.fill();
+                fillCircle(c, this.x+cw2, this.y+ch2, this.size, this.head_color);
             } else {
-                c.lineWidth = "1";
-                c.strokeStyle = this.head_color;
-                c.stroke();
+                circle(c, this.x+cw2, this.y+ch2, this.size, this.head_color);
             }
         }
     };
@@ -429,12 +421,8 @@ function Board() {
     this.nebula = 0;
     this.sound = new Audio("sounds/forcefield.mp3");
     this.clear = function() {
-        var ctx = this.space_ctx;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0,0,this.w,this.h);
-        ctx = this.collision_ctx;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0,0,this.w,this.h);
+        fillRect(this.space_ctx, 0, 0, this.w, this.h, 'black');
+        fillRect(this.collision_ctx, 0, 0, this.w, this.h, 'black');
     };
     this.reset = function() {
         this.clear();
@@ -454,36 +442,32 @@ function Board() {
             this.sound.pause();
         }
         if (this.nebula >= 1) {
-            c.fillStyle = rgba(0,0,0, 0.9 - Math.pow(0.2, this.nebula));
-            c.fillRect(cw2 - this.w/2, ch2 - this.w/2, cw2 + this.w/2, ch2 + this.h/2);
+            fillRect(c,
+                    cw2 - this.w/2,
+                    ch2 - this.w/2,
+                    cw2 + this.w/2,
+                    ch2 + this.h/2,
+                    rgba(0,0,0, 0.9 - Math.pow(0.1, this.nebula)));
         }
-        c.beginPath();
-        c.lineWidth=this.border_size;
-        if (this.endless == 0) {
-            c.strokeStyle="yellow";
-        } else {
-            c.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
-        }
-        c.rect(-this.w/2 + this.border_size/2 + cw2,
-               -this.h/2 + this.border_size/2 + ch2,
-                this.w - this.border_size,
-                this.h - this.border_size);
-        c.stroke();
+        rect(c,
+             -this.w/2 + this.border_size/2 + cw2,
+             -this.h/2 + this.border_size/2 + ch2,
+             this.w - this.border_size,
+             this.h - this.border_size,
+             this.endless == 0 ? 'yellow' : rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0)),
+             this.border_size);
     };
     this.move = function(){
         if (state == 'playing') {
             this.time += 1;
         }
-        var ctx = this.collision_ctx;
-        ctx.beginPath();
-        ctx.lineWidth=this.border_size;
-        if (this.endless == 0) {
-            ctx.strokeStyle=rgba(0, 1, 255, 1.0);
-        } else {
-            ctx.strokeStyle="black";
-        }
-        ctx.rect(this.border_size/2, this.border_size/2, this.w-this.border_size, this.h-this.border_size);
-        ctx.stroke();
+        rect(this.collision_ctx,
+             this.border_size/2,
+             this.border_size/2,
+             this.w-this.border_size,
+             this.h-this.border_size,
+             this.endless == 0 ? rgba(0,1,255) : 'black',
+             this.border_size);
     };
     this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
         var ctx = this.space_ctx;
@@ -502,20 +486,12 @@ function Board() {
         var r = Math.floor(t / 256);
         var g = Math.floor(t % 256);
         var b = 255;
-        ctx.strokeStyle = rgba(r,g,b, 1.0);
+        ctx.strokeStyle = rgba(r,g,b);
         ctx.stroke();
     };
     this.add_circle = function(x,y,radius, fillStyle) {
-        var ctx = this.space_ctx;
-        ctx.beginPath();
-        ctx.arc(x+this.w/2, y+this.h/2, radius, -1*Math.PI, 1*Math.PI, false);
-        ctx.fillStyle = fillStyle;
-        ctx.fill();
-        ctx = this.collision_ctx;
-        ctx.beginPath();
-        ctx.arc(x+this.w/2, y+this.h/2, radius, -1*Math.PI, 1*Math.PI, false);
-        ctx.fillStyle = rgba(0, 1, 255, 1.0);
-        ctx.fill();
+        fillCircle(this.space_ctx, x+this.w/2, y+this.h/2, radius, fillStyle);
+        fillCircle(this.collision_ctx, x+this.w/2, y+this.h/2, radius, rgba(0, 1, 255));
     };
     this.get_enclosing_box = function(points) {
         var x1=this.w; x2=0; y1=this.h; y2=0;
@@ -668,6 +644,8 @@ function PowerUpBase(kind) {
     this.x = 0;
     this.y = 0;
     this.radius = 16;
+    this.imageWidth = 512/this.radius;
+    this.imageHeight = 346/this.radius;
     this.age = 0;
     this.max_age = 0;
     if ('neutral' === kind) {
@@ -686,14 +664,8 @@ function PowerUpBase(kind) {
         } else if ('negative' === kind) {
             this.color = rgba(255, 0, 0, alpha);
         }
-        c.beginPath();
-        c.arc(this.x + cw2,this.y + ch2, this.radius, 0, 2*Math.PI);
-        c.fillStyle = this.color;
-        c.fill();
-        var r = this.radius;
-        var w = 512/r;
-        var h = 346/r;
-        c.drawImage(this.img, this.x-w/2+cw2, this.y-h/2+ch2, w, h);
+        fillCircle(c, this.x + cw2,this.y + ch2, this.radius, this.color);
+        c.drawImage(this.img, this.x-this.imageWidth/2+cw2, this.y-this.imageHeight/2+ch2, this.imageWidth, this.imageHeight);
     };
     this.finished = function() {
         return this.age > this.max_age;
@@ -834,8 +806,7 @@ function PowerUpClear() {
 
 function Background() {
     this.draw = function(){
-        c.fillStyle = "black";
-        c.fillRect(0, 0, canvas.width,canvas.height);
+        fillRect(c, 0, 0, canvas.width, canvas.height, 'black');
     };
     this.move = function(){};
 }
@@ -860,8 +831,7 @@ function Info(){
 function GameOver(){
     this.draw = function(){
         var winner = players.sorted()[0];
-        c.fillStyle = rgba(0,0,0,0.5);
-        c.fillRect(0, 0, canvas.width,canvas.height);
+        c.fillRect(0, 0, canvas.width, canvas.height, rgba(0, 0, 0, 0, 0.5));
         c.textAlign = "center";
         c.fillStyle = winner.tail_color;
         c.font = "50px pixelfont";
@@ -903,12 +873,11 @@ function GameStart(){
         for (var i=10; i<canvas.width/10; i++) {
             var x = i*10 + 10*Math.sin(0.1*this.time);
             var y = (this.time  + 0.5*canvas.height*Math.sin(10 * i) - 0.5*canvas.height) % canvas.height;
-            c.fillStyle = rgba(Math.floor(128 + 128*Math.sin(2*(this.time+i)*0.1)),
-                               Math.floor(128 + 128*Math.sin(3*(this.time+i)*0.1)),
-                               Math.floor(128+128*Math.sin(5*(this.time+i)*0.1)), 0.9);
-            c.fillRect(x, 0, 10+1, y);
-            c.fillStyle = 'yellow';
-            c.fillRect(x, y, 10+1, 10);
+            var col = rgba(Math.floor(128 + 128*Math.sin(2*(this.time+i)*0.1)),
+                           Math.floor(128 + 128*Math.sin(3*(this.time+i)*0.1)),
+                           Math.floor(128+128*Math.sin(5*(this.time+i)*0.1)), 0.9);
+            fillRect(c, x, 0, 10+1, y, col);
+            fillRect(c, x, y, 10+1, 10, 'yellow');
         }
         c.textAlign = "center";
         c.fillStyle = "white";
@@ -973,11 +942,10 @@ function GameConfig(){
             cfg = this.bindings[i];
             var color = cfg.color;
             if (this.current_player == i) {
-                c.fillStyle = 'white';
                 if ('left' === this.current_key) {
-                    c.fillRect(cw2-40, ch2-150 + 12+ (i+1)*40, 180,4);
+                    fillRect(c, cw2-40, ch2-150 + 12+ (i+1)*40, 180, 4, 'white');
                 } else if ('right' === this.current_key) {
-                    c.fillRect(cw2-40+180, ch2-150 + 12+ (i+1)*40, 180,4);
+                    fillRect(c, cw2-40+180, ch2-150 + 12+ (i+1)*40, 180, 4, 'white');
                 }
             }
             var active = cfg.type || this.current_player == i;
@@ -1010,4 +978,43 @@ function dist(x1, y1, x2, y2) {
     return Math.sqrt(dx*dx+dy*dy);
 }
 
-function rgba(r,g,b,a) { return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')'; }
+function rgba(r, g, b, a) {
+    if (!a) {
+        a = 1.0;
+    }
+    return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')';
+}
+
+function fillCircle(ctx, x, y, radius, fillStyle) {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2*Math.PI, false);
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+}
+
+function circle(ctx, x, y, radius, strokeStyle, lineWidth) {
+    if (!lineWidth) {
+        lineWidth = 1;
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2*Math.PI, false);
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = strokeStyle;
+    ctx.stroke();
+}
+
+function fillRect(ctx, x, y, width, height, fillStyle) {
+    ctx.fillStyle = fillStyle;
+    ctx.fillRect(x, y, width, height);
+}
+
+function rect(ctx, x, y, width, height, strokeStyle, lineWidth) {
+    if (!lineWidth) {
+        lineWidth = 1;
+    }
+    ctx.beginPath();
+    ctx.lineWidth=lineWidth;
+    ctx.rect(x, y, width, height);
+    ctx.strokeStyle = strokeStyle;
+    ctx.stroke();
+}
