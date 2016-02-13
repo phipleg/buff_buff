@@ -565,6 +565,182 @@ function Board() {
 }
 
 
+function PowerUp(name, opts) {
+    this.opts = opts;
+    this.img = new Image();
+    this.img.src = opts.image;
+    this.sound = new Audio(opts.sound ? opts.sound : 'sounds/howl_short.mp3');
+    this.owner = null;
+    this.radius = 16;
+    this.x = (Math.random()-0.5)*(board.w-2*this.radius);
+    this.y = (Math.random()-0.5)*(board.h-2*this.radius);
+    this.imageWidth = 512/this.radius;
+    this.imageHeight = 346/this.radius;
+    this.age = 0;
+    this.max_age = 0;
+    this.kind = 'neutral';
+    if (name.startsWith('me_')) {
+        this.kind = 'positive';
+    } else if (name.startsWith('others_')) {
+        this.kind = 'negative';
+    }
+    var defaultMaxAge = { neutral: 500, positive: 300, negative: 200};
+    this.max_age = opts.maxAge ? opts.maxAge : defaultMaxAge[this.kind];
+    this.draw = function(){
+        var alpha = 0.8 + 0.2*Math.sin(board.time/10.0)
+        if ('neutral' === this.kind) {
+            this.color = rgba(0,0,255, alpha);
+        } else if ('positive' === this.kind) {
+            this.color = rgba(0,255,0, alpha);
+        } else if ('negative' === this.kind) {
+            this.color = rgba(255, 0, 0, alpha);
+        }
+        fillCircle(c, this.x + cw2,this.y + ch2, this.radius, this.color);
+        c.drawImage(this.img, this.x-this.imageWidth/2+cw2, this.y-this.imageHeight/2+ch2, this.imageWidth, this.imageHeight);
+    };
+    this.finished = function() {
+        return this.age > this.max_age;
+    };
+    this.move = function(){
+        this.age += 1;
+    };
+    this.upgrade = function(pl) {
+        if ('me' == this.opts.scope || 'all' == this.opts.scope) {
+            this.opts.onBegin(pl);
+        } else if ('others' == this.opts.scope) {
+            players.eachExcept(pl, this.opts.onBegin);
+        }
+    };
+    this.release = function(pl) {
+        if ('me' == this.opts.scope || 'all' == this.opts.scope) {
+            this.opts.onEnd(pl);
+        } else if ('others' == this.opts.scope) {
+            players.eachExcept(pl, this.opts.onEnd);
+        }
+    };
+}
+
+function PowerUpFactory() {
+    var providers = {};
+    this.register = function(name, provider) {
+        var opts = provider();
+        var scope = opts.scope || ['me', 'others'];
+        _.each(scope, function(subject) {
+            var longName = subject + '_' + name;
+            console.log(longName);
+            providers[longName] = function() {
+                var obj = provider();
+                obj.scope = subject;
+                return obj;
+            };
+        });
+        return this;
+    };
+    this.getNames = function() {
+        return Object.keys(providers);
+    };
+    this.create = function(name) {
+        var obj = providers[name]();
+        var p = new PowerUp(name, obj);
+        return p;
+    };
+}
+
+
+factory = new PowerUpFactory();
+
+factory
+.register('thicker', function() {
+    return {
+        scope: ['others'],
+        image: 'img/font-awesome/svg/plus26.svg',
+        onBegin: function(pl) { pl.size *= 2.0; },
+        onEnd: function(pl) { pl.size /= 2.0; }
+    };
+})
+.register('thinner', function() {
+    return {
+        image: 'img/font-awesome/svg/minus20.svg',
+        onBegin: function(pl) { pl.size *= 0.5 },
+        onEnd: function(pl) { pl.size /= 0.5; }
+    };
+})
+.register('faster', function() {
+    return {
+        image: 'img/font-awesome/svg/dashboard2.svg',
+        onBegin: function(pl) { pl.v *= 2.0 },
+        onEnd: function(pl) { pl.v /= 2.0; }
+    };
+})
+.register('slower', function() {
+    return {
+        image: 'img/font-awesome/svg/bug6.svg',
+        onBegin: function(pl) { pl.v *= 0.5 },
+        onEnd: function(pl) { pl.v /= 0.5; }
+    };
+})
+.register('invisible', function() {
+    return {
+        scope: ['me'],
+        image: 'img/font-awesome/svg/plane12.svg',
+        onBegin: function(pl) { pl.transparent += 1; },
+        onEnd: function(pl) { pl.transparent -= 1; }
+    };
+})
+.register('rectangular', function() {
+    return {
+        image: 'img/font-awesome/svg/retweet2.svg',
+        onBegin: function(pl) { pl.rectangular += 1; },
+        onEnd: function(pl) { pl.rectangular -= 1; }
+    };
+})
+.register('flipped', function() {
+    return {
+        scope: ['others'],
+        image: 'img/font-awesome/svg/exchange1.svg',
+        onBegin: function(pl) { pl.flipped += 1; },
+        onEnd: function(pl) { pl.flipped -= 1; }
+    };
+})
+.register('bomb', function() {
+    return {
+        scope: ['all'],
+        image: 'img/font-awesome/svg/time7.svg',
+        sound: 'sounds/time_bomb.mp3',
+        maxAge: 110,
+        onBegin: function(pl) {},
+        onEnd: function(pl) {
+            board.add_circle(this.x, this.y, 100, 'orange');
+            board.add_circle(this.x, this.y, 80, 'red');
+        }
+    };
+})
+.register('endless_board', function() {
+    return {
+        scope: ['all'],
+        image: 'img/font-awesome/svg/lightning14.svg',
+        onBegin: function(pl) { board.endless += 1; },
+        onEnd: function(pl) { board.endless -= 1; }
+    };
+})
+.register('lights_off', function() {
+    return {
+        scope: ['all'],
+        image: 'img/font-awesome/svg/light45.svg',
+        onBegin: function(pl) { board.nebula += 1; },
+        onEnd: function(pl) { board.nebula -= 1; }
+    };
+})
+.register('clean_up', function() {
+    return {
+        scope: ['all'],
+        image: 'img/font-awesome/svg/heart75.svg',
+        onBegin: function(pl) { board.clear(); },
+        onEnd: function(pl) {}
+    };
+});
+
+
 function PowerUps() {
     this.available = [];
     this.taken = [];
@@ -575,24 +751,9 @@ function PowerUps() {
     this.add = function() {
         var attempts = 10;
         for (i=0; i<attempts; i++) {
-            var p;
-            var rnd = getRandomInt(12);
-            switch(rnd) {
-                case 0: p = new PowerUpFaster(); break;
-                case 1: p = new PowerUpSlower(); break;
-                case 2: p = new PowerUpThicker(); break;
-                case 3: p = new PowerUpThinner(); break;
-                case 4: p = new PowerUpClear(); break;
-                case 5: p = new PowerUpFlight(); break;
-                case 6: p = new PowerUpRect(); break;
-                case 7: p = new PowerUpFluffy(); break;
-                case 8: p = new PowerUpRectOther(); break;
-                case 9: p = new PowerUpFlippedOther(); break;
-                case 10: p = new PowerUpBombOther(); break;
-                case 11: p = new PowerUpNebula(); break;
-            }
-            p.x = (Math.random()-0.5)*(board.w-2*p.radius);
-            p.y = (Math.random()-0.5)*(board.h-2*p.radius);
+            var names = factory.getNames();
+            var name = names[getRandomInt(names.length)];
+            var p = factory.create(name);
             var overlap = this.select(p.x, p.y, p.radius);
             if (overlap.length == 0) {
                 this.available.push(p);
@@ -650,163 +811,6 @@ function PowerUps() {
     };
 }
 
-function PowerUpBase(kind) {
-    this.img = new Image();
-    this.owner = null;
-    this.x = 0;
-    this.y = 0;
-    this.radius = 16;
-    this.imageWidth = 512/this.radius;
-    this.imageHeight = 346/this.radius;
-    this.age = 0;
-    this.max_age = 0;
-    if ('neutral' === kind) {
-        this.max_age = 500;
-    } else if ('positive' === kind) {
-        this.max_age = 300;
-    } else if ('negative' === kind) {
-        this.max_age = 200;
-    }
-    this.draw = function(){
-        var alpha = 0.8 + 0.2*Math.sin(board.time/10.0)
-        if ('neutral' === kind) {
-            this.color = rgba(0,0,255, alpha);
-        } else if ('positive' === kind) {
-            this.color = rgba(0,255,0, alpha);
-        } else if ('negative' === kind) {
-            this.color = rgba(255, 0, 0, alpha);
-        }
-        fillCircle(c, this.x + cw2,this.y + ch2, this.radius, this.color);
-        c.drawImage(this.img, this.x-this.imageWidth/2+cw2, this.y-this.imageHeight/2+ch2, this.imageWidth, this.imageHeight);
-    };
-    this.finished = function() {
-        return this.age > this.max_age;
-    };
-    this.move = function(){
-        this.age += 1;
-    };
-}
-
-
-PowerUpThicker.prototype = new PowerUpBase('positive');
-PowerUpThicker.prototype.constructor = PowerUpThicker;
-function PowerUpThicker() {
-    this.img.src = "img/font-awesome/svg/plus26.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.size *= 2.0; };
-    this.release = function(pl) { pl.size /= 2.0; };
-}
-
-PowerUpThinner.prototype = new PowerUpBase('positive');
-PowerUpThinner.prototype.constructor = PowerUpSlower;
-function PowerUpThinner() {
-    this.img.src = "img/font-awesome/svg/minus20.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.size *= 0.5; };
-    this.release = function(pl) { pl.size /= 0.5; };
-}
-
-PowerUpFaster.prototype = new PowerUpBase('positive');
-PowerUpFaster.prototype.constructor = PowerUpFaster;
-function PowerUpFaster() {
-    this.img.src = "img/font-awesome/svg/dashboard2.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.v *= 2.0; };
-    this.release = function(pl) { pl.v /= 2.0; };
-}
-
-PowerUpSlower.prototype = new PowerUpBase('positive');
-PowerUpSlower.prototype.constructor = PowerUpSlower;
-function PowerUpSlower() {
-    this.img.src = "img/font-awesome/svg/bug6.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.v *= 0.5; };
-    this.release = function(pl) { pl.v /= 0.5; };
-}
-
-PowerUpFlight.prototype = new PowerUpBase('positive');
-PowerUpFlight.prototype.constructor = PowerUpFlight;
-function PowerUpFlight() {
-    this.img.src = "img/font-awesome/svg/plane12.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.transparent += 1; };
-    this.release = function(pl) { pl.transparent -= 1; };
-}
-
-PowerUpRect.prototype = new PowerUpBase('positive');
-PowerUpRect.prototype.constructor = PowerUpRect;
-function PowerUpRect() {
-    this.img.src = "img/font-awesome/svg/retweet2.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { pl.rectangular += 1; };
-    this.release = function(pl) { pl.rectangular -= 1; };
-}
-
-PowerUpRectOther.prototype = new PowerUpBase('negative');
-PowerUpRectOther.prototype.constructor = PowerUpRectOther;
-function PowerUpRectOther() {
-    this.img.src = "img/font-awesome/svg/retweet2.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        players.eachExcept(pl, function(other) { other.rectangular += 1; });
-    };
-    this.release = function(pl) {
-        players.eachExcept(pl, function(other) { other.rectangular -= 1; });
-    };
-}
-
-PowerUpFlippedOther.prototype = new PowerUpBase('negative');
-PowerUpFlippedOther.prototype.constructor = PowerUpFlippedOther;
-function PowerUpFlippedOther() {
-    this.img.src = "img/font-awesome/svg/exchange1.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) {
-        players.eachExcept(pl, function(other) { other.flipped += 1; });
-    };
-    this.release = function(pl) {
-        players.eachExcept(pl, function(other) { other.flipped -= 1; });
-    };
-}
-
-PowerUpBombOther.prototype = new PowerUpBase('negative');
-PowerUpBombOther.prototype.constructor = PowerUpBombOther;
-function PowerUpBombOther() {
-    this.img.src = "img/font-awesome/svg/time7.svg";
-    this.sound = new Audio('sounds/time_bomb.mp3');
-    this.max_age = 110;
-    this.upgrade = function(pl) { };
-    this.release = function(pl) {
-        board.add_circle(this.x, this.y, 100, 'orange');
-        board.add_circle(this.x, this.y, 80, 'red');
-    };
-}
-
-PowerUpFluffy.prototype = new PowerUpBase('neutral');
-PowerUpFluffy.prototype.constructor = PowerUpFluffy;
-function PowerUpFluffy() {
-    this.img.src = "img/font-awesome/svg/lightning14.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { board.endless += 1; };
-    this.release = function(pl) { board.endless -= 1; };
-}
-
-PowerUpNebula.prototype = new PowerUpBase('neutral');
-PowerUpNebula.prototype.constructor = PowerUpNebula;
-function PowerUpNebula() {
-    this.img.src = "img/font-awesome/svg/light45.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { board.nebula += 1; };
-    this.release = function(pl) { board.nebula -= 1; };
-}
-
-PowerUpClear.prototype = new PowerUpBase('neutral');
-PowerUpClear.prototype.constructor = PowerUpClear;
-function PowerUpClear() {
-    this.img.src = "img/font-awesome/svg/heart75.svg";
-    this.sound = new Audio("sounds/howl_short.mp3");
-    this.upgrade = function(pl) { board.clear(); };
-    this.release = function(pl) {};
-}
 
 function Background() {
     this.draw = function(){
