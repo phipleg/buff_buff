@@ -159,9 +159,10 @@ function transition(keyCode, keydown) {
 
 
 function run() {
+    transition();
     setInterval(function() {
-        transition();
         _.each(universe, function(el) { el.draw(); });
+        transition();
         _.each(universe, function(el) { el.move(); });
     }, 28);
 }
@@ -424,9 +425,25 @@ function Board() {
     this.collision_ctx = this.collision_canvas.getContext("2d");
     this.time = 0;
     this.endless = 0;
-    this.border_size = 10;
+    this.border_size = 4;
     this.nebula = 0;
     this.sound = new Audio("sounds/forcefield.mp3");
+    this.clear = function() {
+        var ctx = this.space_ctx;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,this.w,this.h);
+        ctx = this.collision_ctx;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,this.w,this.h);
+    };
+    this.reset = function() {
+        this.clear();
+        this.border_size = 4;
+        this.time = 0;
+        this.endless = 0;
+        this.nebula = 0;
+        this.sound.pause();
+    };
     this.draw = function() {
         var ctx = this.space_ctx;
         var imDat = ctx.getImageData(0,0,this.w,this.h);
@@ -440,22 +457,24 @@ function Board() {
             c.fillStyle = rgba(0,0,0, 0.9 - Math.pow(0.2, this.nebula));
             c.fillRect(cw2 - this.w/2, ch2 - this.w/2, cw2 + this.w/2, ch2 + this.h/2);
         }
+        c.beginPath();
+        c.lineWidth=this.border_size;
+        if (this.endless == 0) {
+            c.strokeStyle="yellow";
+        } else {
+            c.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
+        }
+        c.rect(-this.w/2 + this.border_size/2 + cw2,
+               -this.h/2 + this.border_size/2 + ch2,
+                this.w - this.border_size,
+                this.h - this.border_size);
+        c.stroke();
     };
     this.move = function(){
         if (state == 'playing') {
             this.time += 1;
         }
-        var ctx = this.space_ctx;
-        ctx.beginPath();
-        ctx.lineWidth=this.border_size;
-        if (this.endless == 0) {
-            ctx.strokeStyle="yellow";
-        } else {
-            ctx.strokeStyle=rgba(0,0,255, 0.5 + 0.5*Math.sin(this.time/10.0));
-        }
-        ctx.rect(0, 0, this.w, this.h);
-        ctx.stroke();
-        ctx = this.collision_ctx;
+        var ctx = this.collision_ctx;
         ctx.beginPath();
         ctx.lineWidth=this.border_size;
         if (this.endless == 0) {
@@ -463,7 +482,7 @@ function Board() {
         } else {
             ctx.strokeStyle="black";
         }
-        ctx.rect(0, 0, this.w, this.h);
+        ctx.rect(this.border_size/2, this.border_size/2, this.w-this.border_size, this.h-this.border_size);
         ctx.stroke();
     };
     this.add_line = function(x1,y1,x2,y2,x3,y3,lineWidth, strokeStyle) {
@@ -497,22 +516,6 @@ function Board() {
         ctx.arc(x+this.w/2, y+this.h/2, radius, -1*Math.PI, 1*Math.PI, false);
         ctx.fillStyle = rgba(0, 1, 255, 1.0);
         ctx.fill();
-    };
-    this.clear = function() {
-        var ctx = this.space_ctx;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0,0,this.w,this.h);
-        ctx = this.collision_ctx;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0,0,this.w,this.h);
-    };
-    this.reset = function() {
-        this.clear();
-        this.border_size = 10;
-        this.time = 0;
-        this.endless = 0;
-        this.nebula = 0;
-        this.sound.pause();
     };
     this.get_enclosing_box = function(points) {
         var x1=this.w; x2=0; y1=this.h; y2=0;
@@ -642,7 +645,7 @@ function PowerUps() {
             return;
         }
         var x = this.available.length;
-        if (Math.random() < 1.0/(200. + (x+2)*(x+2))) {
+        if (x < 10) {
             this.add();
         }
         _.each(this.available, function(p) { p.move(); });
@@ -794,7 +797,7 @@ PowerUpBombOther.prototype.constructor = PowerUpBombOther;
 function PowerUpBombOther() {
     this.img.src = "img/font-awesome/svg/time7.svg";
     this.sound = new Audio('sounds/time_bomb.mp3');
-    this.max_age = 120;
+    this.max_age = 110;
     this.upgrade = function(pl) { };
     this.release = function(pl) {
         board.add_circle(this.x, this.y, 100, 'orange');
