@@ -23,6 +23,7 @@ window.onload = function(){
 }
 
 function transition(keyCode, keydown) {
+    var prevState = state;
     var key = null;
     if (keyCode !== undefined) {
         key = keyboardMap[keyCode];
@@ -120,7 +121,7 @@ function transition(keyCode, keydown) {
         } else {
             for (var i=0; i<gameconfig.bindings.length; i++) {
                 var cfg = gameconfig.bindings[i];
-                var pl = players.by_name[cfg.name];
+                var pl = players.find(cfg.name);
                 if (cfg.type === 'human') {
                     if (key === cfg.left) {
                         pl.to_left = true;
@@ -154,6 +155,9 @@ function transition(keyCode, keydown) {
             players.deploy();
             state = 'ready';
         }
+    }
+    if (prevState != state) {
+        console.log([prevState, state]);
     }
 }
 
@@ -195,6 +199,11 @@ function Player(name, color, score){
     this.draw = function() {
         if (false == this.alive) {
             fillCircle(c, this.x+cw2, this.y+ch2, this.size, 'yellow');
+            if (this.collision_points) {
+                _.each(this.collision_points, function(p) {
+                    fillCircle(c, p.x+cw2, p.y+ch2, 1, 'black');
+                });
+            }
             return;
         }
         var default_head_color = this.alive && this.flipped > 0 ? "blue" : "yellow";
@@ -250,11 +259,11 @@ function Player(name, color, score){
         if (!this.alive) {
             return;
         }
-        this.has_protection = this.distance < 100;
+        this.has_protection = this.distance < 200;
         var gap_factor = 3 * this.size*10 + 10;
         if (false == this.has_hole) {
             if (this.distance > this.last_track_distance + 10 * this.size) {
-                this.has_hole = Math.random() > 0.98;
+                this.has_hole = Math.random() > 0.97;
                 if (this.has_hole) {
                     this.last_track_distance = this.distance;
                 }
@@ -287,8 +296,10 @@ function Player(name, color, score){
         var x0 = new_pos.x;
         var y0 = new_pos.y;
 
-        this.hit = this.collision_detection(x0, y0) && this.has_track && !this.has_protection;
-        if (this.hit) {
+        var hits = this.collision_detection(x0, y0)
+        if (hits.length > 0 && this.has_track && !this.has_protection) {
+            this.collision_points = hits;
+            this.hit = true;
             this.alive = false;
             this.crash_sound.play();
         }
@@ -310,26 +321,22 @@ function Player(name, color, score){
     };
     this.surface_points = function(new_x, new_y) {
         var points = [];
-        var radius = this.size - 2;
+        var radius = this.size;
         if (this.rectangular >= 1) {
             var sx = new_x;
             var sy = new_y;
             sx += radius*Math.cos(this.angle-0.5*Math.PI);
             sy += radius*Math.sin(this.angle-0.5*Math.PI);
-            points.push(Math.floor(sx));
-            points.push(Math.floor(sy));
+            points.push({x: Math.floor(sx), y:Math.floor(sy)});
             sx += radius*Math.cos(this.angle-0.0*Math.PI);
             sy += radius*Math.sin(this.angle-0.0*Math.PI);
-            points.push(Math.floor(sx));
-            points.push(Math.floor(sy));
+            points.push({x: Math.floor(sx), y:Math.floor(sy)});
             sx += radius*Math.cos(this.angle+0.5*Math.PI);
             sy += radius*Math.sin(this.angle+0.5*Math.PI);
-            points.push(Math.floor(sx));
-            points.push(Math.floor(sy));
+            points.push({x: Math.floor(sx), y:Math.floor(sy)});
             sx += radius*Math.cos(this.angle+0.5*Math.PI);
             sy += radius*Math.sin(this.angle+0.5*Math.PI);
-            points.push(Math.floor(sx));
-            points.push(Math.floor(sy));
+            points.push({x: Math.floor(sx), y:Math.floor(sy)});
             sx += radius*Math.cos(this.angle+1.0*Math.PI);
             sy += radius*Math.sin(this.angle+1.0*Math.PI);
         } else {
@@ -337,41 +344,41 @@ function Player(name, color, score){
                 var beta = this.angle + t* Math.PI/2 * 0.8;
                 var sx = new_x + Math.cos(beta) * radius;
                 var sy = new_y + Math.sin(beta) * radius;
-                points.push(Math.floor(sx));
-                points.push(Math.floor(sy));
+                points.push({x: Math.floor(sx), y:Math.floor(sy)});
             }
         }
         return points;
     };
     this.collision_detection = function(x,y) {
         var points = this.surface_points(x,y);
-        for (var i=0; i<points.length-1; i+=2) {
-            powerups.pick_from(this, points[i], points[i+1]);
-        }
+        var pl = this;
+        _.each(points, function(point) {
+            powerups.pick_from(pl, point.x, point.y);
+        });
         var min_age = 4 * (this.size+1) * 1.0 / this.v
-        hits = board.get_hits(points, min_age);
-        return hits.length > 0;
+        var hits = board.get_hits(points, min_age);
+        return hits;
     };
 }
 
 function PlayerList() {
     this.list = [];
-    this.by_name = {};
     this.deploy = function() {
-        var old_by_name = this.by_name;
+        var old_list = this.list;
         this.list = [];
-        this.by_name = {};
         for (var i=0; i<gameconfig.bindings.length; i++) {
             var cfg = gameconfig.bindings[i];
+            var old_pl = _.find(old_list, function(pl) { return cfg.name === pl.name; });
+            var score = old_pl ? old_pl.score : 0.0;
             if ('human' == cfg.type) {
-                var old_pl = old_by_name[cfg.name];
-                var score = old_pl ? old_pl.score : 0.0;
                 var pl = new Player(cfg.name, cfg.color, score);
                 this.list.push(pl);
-                this.by_name[pl.name] = pl;
             }
         }
         this.goal = 10 * (this.list.length - 1);
+    };
+    this.find = function(playerName) {
+        return _.find(this.list, function(pl) { return playerName === pl.name; });
     };
     this.sorted = function() {
         var copy = this.list.slice();
@@ -421,10 +428,6 @@ function Board() {
     this.collision_canvas.width = this.w;
     this.collision_canvas.height = this.h;
     this.collision_ctx = this.collision_canvas.getContext("2d");
-    this.time = 0;
-    this.endless = 0;
-    this.border_size = 0;
-    this.nebula = 0;
     this.sound = new Audio("sounds/forcefield.mp3");
     this.clear = function() {
         fillRect(this.space_ctx, 0, 0, this.w, this.h, 'black');
@@ -438,6 +441,7 @@ function Board() {
         this.nebula = 0;
         this.sound.pause();
     };
+    this.reset();
     this.draw = function() {
         c.putImageData(this.space_ctx.getImageData(0,0,this.w,this.h),-this.w/2+cw2,-this.h/2+ch2);
         if (this.endless >= 1) {
@@ -499,27 +503,25 @@ function Board() {
     };
     this.get_enclosing_box = function(points) {
         var x1=this.w; x2=0; y1=this.h; y2=0;
-        for (var i=0; i<points.length-1; i+=2) {
-            var x = points[i];
-            var y = points[i+1];
-            var tx = Math.floor(clip(x+this.w/2, 0, this.w));
-            var ty = Math.floor(clip(y+this.h/2, 0, this.h));
+        var pl = this;
+        _.each(points, function(point) {
+            var tx = Math.floor(clip(point.x+pl.w/2, 0, pl.w));
+            var ty = Math.floor(clip(point.y+pl.h/2, 0, pl.h));
             x1 = Math.min(x1, tx);
             x2 = Math.max(x2, tx);
             y1 = Math.min(y1, ty);
             y2 = Math.max(y2, ty);
-        }
+        });
         return {x1: x1, y1: y1, y2: y2, width: x2-x1+1, height: y2-y1+1};
     };
-    this.get_hits = function(point_data, min_age) {
-        var box = this.get_enclosing_box(point_data);
-        var imDat = this.collision_ctx.getImageData(box.x1,box.y1,box.width,box.height);
+    this.get_hits = function(points, min_age) {
+        var box = this.get_enclosing_box(points);
+        var imDat = this.collision_ctx.getImageData(box.x1, box.y1, box.width, box.height);
         hits = [];
-        for (var i=0; i<point_data.length-1; i+=2) {
-            var x = point_data[i];
-            var y = point_data[i+1];
-            var tx = Math.floor(clip(x+this.w/2, 0, this.w));
-            var ty = Math.floor(clip(y+this.h/2, 0, this.h));
+        var pl = this;
+        _.each(points, function(point) {
+            var tx = Math.floor(clip(point.x+pl.w/2, 0, pl.w));
+            var ty = Math.floor(clip(point.y+pl.h/2, 0, pl.h));
             var j = (tx-box.x1)+(ty-box.y1)*box.width;
             var r = imDat.data[4*j+0];
             var g = imDat.data[4*j+1];
@@ -527,11 +529,12 @@ function Board() {
             var point_created = 2 * (r*256+g);
             var age = point_created != 0 ? board.time - point_created : 0.0;
             if (age > min_age) {
-                hit = {x:x, y:y, age: age};
+                hit = {x: point.x, y: point.y, age: age};
                 hits.push(hit);
             }
-        }
+        });
         imDat.data = null;
+
         return hits;
     };
     this.project = function(x, y) {
@@ -869,9 +872,9 @@ function GameStart(){
         for (var i=10; i<canvas.width/10; i++) {
             var x = i*10 + 10*Math.sin(0.1*this.time);
             var y = (this.time  + 0.5*canvas.height*Math.sin(10 * i) - 0.5*canvas.height) % canvas.height;
-            var col = rgba(Math.floor(128 + 128*Math.sin(2*(this.time+i)*0.1)),
-                           Math.floor(128 + 128*Math.sin(3*(this.time+i)*0.1)),
-                           Math.floor(128+128*Math.sin(5*(this.time+i)*0.1)), 0.9);
+            var col = rgba(128 + 128*Math.sin(2*(this.time+i)*0.1),
+                           128 + 128*Math.sin(3*(this.time+i)*0.1),
+                           128+128*Math.sin(5*(this.time+i)*0.1), 0.9);
             fillRect(c, x, 0, 10+1, y, col);
             fillRect(c, x, y, 10+1, 10, 'yellow');
         }
@@ -978,7 +981,7 @@ function rgba(r, g, b, a) {
     if (!a) {
         a = 1.0;
     }
-    return "rgba(" + r + ',' + g + ',' + b + ',' + a + ')';
+    return "rgba(" + Math.floor(r) + ',' + Math.floor(g) + ',' + Math.floor(b) + ',' + a + ')';
 }
 
 function fillCircle(ctx, x, y, radius, fillStyle) {
