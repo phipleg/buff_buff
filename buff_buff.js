@@ -236,13 +236,12 @@ function Player(name, color, score){
         }
     };
     this.acceleration = function() {
-        var sgn = sgn = this.flipped ? -1 : 1;
         var acc = 0;
         if (this.to_left) {
-            acc -= sgn * 1;
+            acc -= 1;
         }
         if (this.to_right) {
-            acc += sgn * 1;
+            acc += 1;
         }
         return acc;
     };
@@ -267,7 +266,7 @@ function Player(name, color, score){
             }
         }
         this.has_track = !(this.has_hole || this.transparent > 0);
-        var acc = this.acceleration();
+        var acc = (this.flipped ? -1 : 1) *  this.acceleration();
         var angle_delta;
         var dl = this.v;
         if (this.rectangular >= 1) {
@@ -399,6 +398,13 @@ function PlayerList() {
             }
         }
     };
+    this.eachExcept = function(pl0, collector) {
+        _.each(this.list, function(pl) {
+            if (pl !== pl0) {
+                collector(pl);
+            }
+        });
+    };
     this.draw = function() {
         _.each(this.list, function(pl) { pl.draw(); });
     };
@@ -417,7 +423,7 @@ function Board() {
     this.collision_ctx = this.collision_canvas.getContext("2d");
     this.time = 0;
     this.endless = 0;
-    this.border_size = 4;
+    this.border_size = 0;
     this.nebula = 0;
     this.sound = new Audio("sounds/forcefield.mp3");
     this.clear = function() {
@@ -433,9 +439,7 @@ function Board() {
         this.sound.pause();
     };
     this.draw = function() {
-        var ctx = this.space_ctx;
-        var imDat = ctx.getImageData(0,0,this.w,this.h);
-        c.putImageData(imDat,-this.w/2+cw2,-this.h/2+ch2);
+        c.putImageData(this.space_ctx.getImageData(0,0,this.w,this.h),-this.w/2+cw2,-this.h/2+ch2);
         if (this.endless >= 1) {
             this.sound.play();
         } else {
@@ -673,14 +677,6 @@ function PowerUpBase(kind) {
     this.move = function(){
         this.age += 1;
     };
-    this.other_players = function(pl, collector) {
-        for (var i=0; i<players.list.length; i++) {
-            var other = players.list[i];
-            if (other !== pl) {
-                collector(other);
-            }
-        }
-    };
 }
 
 
@@ -744,10 +740,10 @@ function PowerUpRectOther() {
     this.img.src = "img/font-awesome/svg/retweet2.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
     this.upgrade = function(pl) {
-        this.other_players(pl, function(other) { other.rectangular += 1; });
+        players.eachExcept(pl, function(other) { other.rectangular += 1; });
     };
     this.release = function(pl) {
-        this.other_players(pl, function(other) { other.rectangular -= 1; });
+        players.eachExcept(pl, function(other) { other.rectangular -= 1; });
     };
 }
 
@@ -757,10 +753,10 @@ function PowerUpFlippedOther() {
     this.img.src = "img/font-awesome/svg/exchange1.svg";
     this.sound = new Audio("sounds/howl_short.mp3");
     this.upgrade = function(pl) {
-        this.other_players(pl, function(other) { other.flipped += 1; });
+        players.eachExcept(pl, function(other) { other.flipped += 1; });
     };
     this.release = function(pl) {
-        this.other_players(pl, function(other) { other.flipped -= 1; });
+        players.eachExcept(pl, function(other) { other.flipped -= 1; });
     };
 }
 
