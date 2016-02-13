@@ -603,6 +603,8 @@ function PowerUp(name, opts) {
     };
     this.move = function(){
         this.age += 1;
+        this.opts.x = this.x;
+        this.opts.y = this.y;
     };
     this.upgrade = function(pl) {
         if ('me' == this.opts.scope || 'all' == this.opts.scope) {
@@ -710,6 +712,8 @@ factory
         maxAge: 110,
         onBegin: function(pl) {},
         onEnd: function(pl) {
+            console.log('bomb!!!!');
+            console.log(this);
             board.add_circle(this.x, this.y, 100, 'orange');
             board.add_circle(this.x, this.y, 80, 'red');
         }
