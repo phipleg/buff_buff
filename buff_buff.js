@@ -154,9 +154,6 @@ function transition(keyCode, keydown) {
         }
     } else if ('round_over' === state) {
         if ('SPACE' == key) {
-            //board.reset();
-            //powerups.reset();
-            //players.deploy();
             state = 'pre_ready';
         }
     }
@@ -434,19 +431,15 @@ function Board() {
     this.collision_canvas.height = this.h;
     this.collision_ctx = this.collision_canvas.getContext("2d");
     this.sound = new Audio("sounds/forcefield.mp3");
+    this.border_size = 4;
+    this.time = 0;
+    this.endless = 0;
+    this.nebula = 0;
+    this.sound.pause();
     this.clear = function() {
         fillRect(this.space_ctx, 0, 0, this.w, this.h, 'black');
         fillRect(this.collision_ctx, 0, 0, this.w, this.h, 'black');
     };
-    this.reset = function() {
-        this.clear();
-        this.border_size = 4;
-        this.time = 0;
-        this.endless = 0;
-        this.nebula = 0;
-        this.sound.pause();
-    };
-    this.reset();
     this.draw = function() {
         c.putImageData(this.space_ctx.getImageData(0,0,this.w,this.h),-this.w/2+cw2,-this.h/2+ch2);
         if (this.endless >= 1) {
@@ -587,6 +580,9 @@ function PowerUp(name, opts) {
     var defaultMaxAge = { neutral: 500, positive: 300, negative: 200};
     this.max_age = opts.maxAge ? opts.maxAge : defaultMaxAge[this.kind];
     this.draw = function(){
+        if (this.owner) {
+            return;
+        }
         var alpha = 0.8 + 0.2*Math.sin(board.time/10.0)
         if ('neutral' === this.kind) {
             this.color = rgba(0,0,255, alpha);
@@ -598,22 +594,27 @@ function PowerUp(name, opts) {
         fillCircle(c, this.x + cw2,this.y + ch2, this.radius, this.color);
         c.drawImage(this.img, this.x-this.imageWidth/2+cw2, this.y-this.imageHeight/2+ch2, this.imageWidth, this.imageHeight);
     };
-    this.finished = function() {
-        return this.age > this.max_age;
-    };
     this.move = function(){
+        if (null != this.owner && this.opts.onActive) {
+            this.opts.onActive();
+        }
         this.age += 1;
         this.opts.x = this.x;
         this.opts.y = this.y;
+        this.finished = this.age > this.max_age;
     };
     this.upgrade = function(pl) {
+        this.sound.play();
+        this.owner = pl;
+        this.age = 0;
         if ('me' == this.opts.scope || 'all' == this.opts.scope) {
             this.opts.onBegin(pl);
         } else if ('others' == this.opts.scope) {
             players.eachExcept(pl, this.opts.onBegin);
         }
     };
-    this.release = function(pl) {
+    this.release = function() {
+        var pl = this.owner;
         if ('me' == this.opts.scope || 'all' == this.opts.scope) {
             this.opts.onEnd(pl);
         } else if ('others' == this.opts.scope) {
@@ -662,6 +663,7 @@ factory
 })
 .register('thinner', function() {
     return {
+        scope: ['me'],
         image: 'img/font-awesome/svg/minus20.svg',
         onBegin: function(pl) { pl.size *= 0.5 },
         onEnd: function(pl) { pl.size /= 0.5; }
@@ -712,8 +714,6 @@ factory
         maxAge: 110,
         onBegin: function(pl) {},
         onEnd: function(pl) {
-            console.log('bomb!!!!');
-            console.log(this);
             board.add_circle(this.x, this.y, 100, 'orange');
             board.add_circle(this.x, this.y, 80, 'red');
         }
@@ -742,15 +742,34 @@ factory
         onBegin: function(pl) { board.clear(); },
         onEnd: function(pl) {}
     };
+})
+.register('scrap_press', function() {
+    return {
+        scope: ['all'],
+        image: 'img/font-awesome/svg/warning18.svg',
+        onBegin: function(pl) { },
+        onActive: function() { board.border_size += 0.1 },
+        onEnd: function(pl) {}
+    };
 });
 
 
 function PowerUps() {
     this.available = [];
-    this.taken = [];
-    this.reset = function() {
-        this.available = [];
-        this.taken = [];
+    this.select = function(x,y, other_radius) {
+        var result = [];
+        if (!other_radius) {
+            other_radius = 0;
+        }
+        _.each(this.available, function(p) {
+            if (p.owner === null) {
+                var d = dist(x,y,p.x,p.y) - p.radius - other_radius;
+                if (d <= 0) {
+                    result.push(p);
+                }
+            }
+        });
+        return result;
     };
     this.add = function() {
         var attempts = 10;
@@ -765,30 +784,8 @@ function PowerUps() {
             }
         }
     };
-    this.select = function(x,y, other_radius) {
-        var result = [];
-        if (!other_radius) {
-            other_radius = 0;
-        }
-        _.each(this.available, function(p) {
-            var d = dist(x,y,p.x,p.y) - p.radius - other_radius;
-            if (d <= 0) {
-                result.push(p);
-            }
-        });
-        return result;
-    };
     this.pick_from = function(pl, x, y) {
-        var result = this.select(x,y);
-        for (var i=result.length-1; i>=0; i--) {
-            var p = result[i];
-            this.taken.push(p);
-            this.available.splice(this.available.indexOf(p),1);
-            p.age = 0;
-            p.upgrade(pl);
-            p.sound.play();
-            p.owner = pl;
-        }
+        _.each(this.select(x,y), function(p) { p.upgrade(pl); });
     };
     this.draw = function(){
         _.each(this.available, function(p) { p.draw(); });
@@ -797,19 +794,15 @@ function PowerUps() {
         if (state != 'playing') {
             return;
         }
-        var x = this.available.length;
-        if (x < 10) {
+        if (this.available.length < 10) {
             this.add();
         }
         _.each(this.available, function(p) { p.move(); });
-        for (var i=this.taken.length-1; i>=0; i--) {
-            var p = this.taken[i];
-            p.move();
-            if (p.finished()) {
-                var pl = p.owner;
-                p.owner = null;
-                p.release(pl);
-                this.taken.splice(i,1);
+        for (var i=this.available.length-1; i>=0; i--) {
+            var p = this.available[i];
+            if (p.owner != null && p.finished) {
+                p.release();
+                this.available.splice(i,1);
             }
         }
     };
