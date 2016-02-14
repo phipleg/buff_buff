@@ -44,16 +44,12 @@ function transition(keyCode, keydown) {
         universe = [background, gamestart];
     } else if ('menu' === state) {
         if ('SPACE' === key) {
+            state = 'pre_config';
+        }
+    } else if ('pre_config' === state) {
+        if (null == key) {
             universe = [background, gameconfig];
             state = 'config';
-        }
-    } else if ('pre_ready' === state) {
-        if (null == key) {
-            board = new Board();
-            powerups = new PowerUps();
-            players = new PlayerList(players);
-            universe = [background, info, board, powerups, players, gameready];
-            state = 'ready';
         }
     } else if ('config' === state) {
         if ('SPACE' === key) {
@@ -101,13 +97,20 @@ function transition(keyCode, keydown) {
                 gameconfig.validate();
             }
         }
+    } else if ('pre_ready' === state) {
+        if (null == key) {
+            board = new Board();
+            powerups = new PowerUps();
+            players = new PlayerList(players);
+            universe = [background, info, board, powerups, players, gameready];
+            state = 'ready';
+        }
     } else if ('ready' === state) {
         if ('SPACE' === key) {
             universe = [background, info, board, powerups, players];
             state = 'playing';
         } else if ('ESCAPE' == key) {
-            universe = [gameconfig, background];
-            state = 'config';
+            state = 'pre_config';
         }
     } else if ('playing' === state) {
         if (1 >= players.count_alive()) {
@@ -141,19 +144,25 @@ function transition(keyCode, keydown) {
         }
     } else if ('pause' === state) {
         if ('ESCAPE' === key) {
-            universe = [background, gameconfig];
-            state = 'config';
+            state = 'pre_config';
         } else if ('SPACE' === key) {
             universe = prev_universe;
             state = 'playing';
         }
     } else if ('game_over' === state) {
-        if ('SPACE' == key) {
-            universe = [background, gameconfig];
-            state = 'config';
+        if ('SPACE' === key || 'ESCAPE' === key) {
+            powerups.terminate();
+            players.terminate();
+            state = 'pre_config';
         }
     } else if ('round_over' === state) {
-        if ('SPACE' == key) {
+        if ('ESCAPE' === key) {
+            powerups.terminate();
+            players.terminate();
+            state = 'pre_config';
+        } else if ('SPACE' === key) {
+            powerups.terminate();
+            players.terminate();
             state = 'pre_ready';
         }
     }
@@ -363,6 +372,9 @@ function Player(name, color, score){
         var hits = board.get_hits(points, min_age);
         return hits;
     };
+    this.terminate = function() {
+        this.crash_sound.pause();
+    }
 }
 
 function PlayerList(prevPlayers) {
@@ -417,6 +429,9 @@ function PlayerList(prevPlayers) {
     this.draw = function() {
         _.each(this.list, function(pl) { pl.draw(); });
     };
+    this.terminate = function() {
+        _.each(this.list, function(pl) { pl.terminate(); });
+    };
 }
 
 function Board() {
@@ -430,23 +445,16 @@ function Board() {
     this.collision_canvas.width = this.w;
     this.collision_canvas.height = this.h;
     this.collision_ctx = this.collision_canvas.getContext("2d");
-    this.sound = new Audio("sounds/forcefield.mp3");
     this.border_size = 4;
     this.time = 0;
     this.endless = 0;
     this.nebula = 0;
-    this.sound.pause();
     this.clear = function() {
         fillRect(this.space_ctx, 0, 0, this.w, this.h, 'black');
         fillRect(this.collision_ctx, 0, 0, this.w, this.h, 'black');
     };
     this.draw = function() {
         c.putImageData(this.space_ctx.getImageData(0,0,this.w,this.h),-this.w/2+cw2,-this.h/2+ch2);
-        if (this.endless >= 1) {
-            this.sound.play();
-        } else {
-            this.sound.pause();
-        }
         if (this.nebula >= 1) {
             fillRect(c,
                     cw2 - this.w/2,
@@ -555,6 +563,8 @@ function Board() {
         y -= this.h/2;
         return {x:x, y:y};
     };
+    this.terminate = function() {
+    };
 }
 
 
@@ -621,6 +631,9 @@ function PowerUp(name, opts) {
             players.eachExcept(pl, this.opts.onEnd);
         }
     };
+    this.terminate = function() {
+        this.sound.pause();
+    }
 }
 
 function PowerUpFactory() {
@@ -723,6 +736,7 @@ factory
     return {
         scope: ['all'],
         image: 'img/font-awesome/svg/lightning14.svg',
+        sound: 'sounds/forcefield.mp3',
         onBegin: function(pl) { board.endless += 1; },
         onEnd: function(pl) { board.endless -= 1; }
     };
@@ -747,6 +761,7 @@ factory
     return {
         scope: ['all'],
         image: 'img/font-awesome/svg/warning18.svg',
+        sound: 'sounds/forcefield_002.mp3',
         onBegin: function(pl) { },
         onActive: function() { board.border_size += 0.1 },
         onEnd: function(pl) {}
@@ -791,6 +806,21 @@ function PowerUps() {
         _.each(this.available, function(p) { p.draw(); });
     };
     this.move = function(){
+        if (state === 'pause') {
+            _.each(this.available, function(p) {
+                if (p.sound.played.length > 0) {
+                    p.paused = true;
+                    p.sound.pause();
+                }
+            });
+        } else if (state === 'playing') {
+            _.each(this.available, function(p) {
+                if (p.paused) {
+                    p.sound.play();
+                    p.paused = false;
+                }
+            });
+        }
         if (state != 'playing') {
             return;
         }
@@ -806,6 +836,9 @@ function PowerUps() {
             }
         }
     };
+    this.terminate = function() {
+        _.each(this.available, function(p) { p.terminate(); });
+    }
 }
 
 
@@ -814,6 +847,7 @@ function Background() {
         fillRect(c, 0, 0, canvas.width, canvas.height, 'black');
     };
     this.move = function(){};
+    this.terminate = function(){};
 }
 
 function Info(){
@@ -831,45 +865,36 @@ function Info(){
         }
     };
     this.move = function(){};
+    this.terminate = function(){};
 }
 
 function GameOver(){
     this.draw = function(){
-        var winner = players.sorted()[0];
-        c.fillRect(0, 0, canvas.width, canvas.height, rgba(0, 0, 0, 0, 0.5));
-        c.textAlign = "center";
-        c.fillStyle = winner.tail_color;
-        c.font = "50px pixelfont";
-        c.fillText(winner.name, cw2, ch2-60);
-        c.fillText('wins!', cw2, ch2);
-        c.font = "30px pixelfont";
-        c.fillText("press space to play again", cw2, ch2+60)
+        drawOverlay();
+        h2(players.sorted()[0].name + ' wins!');
+        h3("press space to play again");
     };
     this.move = function(){};
 }
 
 function GamePause(){
     this.draw = function(){
-        c.textAlign = "center";
-        c.fillStyle = "white";
-        c.font = "50px pixelfont";
-        c.fillText("PAUSE", cw2, ch2);
-        c.font = "30px pixelfont";
-        c.fillText("press space to continue", cw2, ch2+130)
-        c.fillText("press esc to restart", cw2, ch2+160)
+        drawOverlay();
+        h2('PAUSE');
+        h3('press space to continue\npress esc to restart');
     };
     this.move = function(){};
+    this.terminate = function(){};
 }
 
 function GameReady(){
     this.draw = function(){
-        c.textAlign = "center";
-        c.fillStyle = "white";
-        c.font = "30px pixelfont";
-        c.fillText("ready?", cw2, ch2-30)
-        c.fillText("press space to start", cw2, ch2)
+        drawOverlay();
+        h2('READY?');
+        h3('press space to start');
     };
     this.move = function(){};
+    this.terminate = function(){};
 }
 
 function GameStart(){
@@ -884,18 +909,14 @@ function GameStart(){
             fillRect(c, x, 0, 10+1, y, col);
             fillRect(c, x, y, 10+1, 10, 'yellow');
         }
-        c.textAlign = "center";
-        c.fillStyle = "white";
-        c.font = "100px pixelfont";
-        c.fillText("BUFF BUFF", cw2, ch2-50);
-        c.font = "30px pixelfont";
-        c.fillText("press space to configure keys", cw2, ch2+100)
-        c.font = "10px pixelfont";
-        c.fillText("Sound by freesfx.co.uk", cw2, ch2*2 - 20)
+        h1('BUFF BUFF');
+        h3('press space to configure players');
+        footnote('Sound by freesfx.co.uk');
     };
     this.move = function(){
         this.time += 1;
     };
+    this.terminate = function(){};
 }
 
 function GameConfig(){
@@ -948,34 +969,70 @@ function GameConfig(){
             var color = cfg.color;
             if (this.current_player == i) {
                 if ('left' === this.current_key) {
-                    fillRect(c, cw2-40, ch2-150 + 12+ (i+1)*40, 180, 4, 'white');
+                    fillRect(c, cw2-40, ch2-150 + 12+ (i+1)*30, 180, 4, 'white');
                 } else if ('right' === this.current_key) {
-                    fillRect(c, cw2-40+180, ch2-150 + 12+ (i+1)*40, 180, 4, 'white');
+                    fillRect(c, cw2-40+180, ch2-150 + 12+ (i+1)*30, 180, 4, 'white');
                 }
             }
             var active = cfg.type || this.current_player == i;
             var alpha = active ? 1.0 : 0.3;
             c.fillStyle = rgba(color.r, color.g, color.b, alpha);
-            c.fillText( (i+1) + " " + cfg.name, cw2-250, ch2-150 + 10 + (i+1)*40);
+            c.fillText( (i+1) + " " + cfg.name, cw2-250, ch2-150 + 10 + (i+1)*30);
             c.fillStyle = rgba(color.r, color.g, color.b, active ? 1.0: 0.5);
-            c.fillText(cfg.left ? cfg.left : '', cw2-40, ch2-150 + 10 + (i+1)*40);
+            c.fillText(cfg.left ? cfg.left : '', cw2-40, ch2-150 + 10 + (i+1)*30);
             c.fillStyle = rgba(color.r, color.g, color.b, active ? 1: 0.5);
-            c.fillText(cfg.right ? cfg.right : '', cw2+140, ch2-150 + 10 + (i+1)*40);
+            c.fillText(cfg.right ? cfg.right : '', cw2+140, ch2-150 + 10 + (i+1)*30);
         }
         c.textAlign = "center";
         c.fillStyle = "white";
-        if (this.valid) {
-            c.fillText("press space to play", cw2, ch2+250)
-        } else {
-            c.fillText("configure at least 2 players!", cw2, ch2+250)
-        }
+        c.fillText(this.valid ? "press space to play" : 'configure at least 2 players!', cw2, ch2+250)
     };
     this.move = function(){}
+    this.terminate = function(){};
 }
 
-function getRandomInt(n) { return Math.floor(Math.random() * n); }
+function h1(text, align, fillStyle) {
+    c.textAlign = align || 'center';
+    c.fillStyle = fillStyle || 'white';
+    c.font = '100px pixelfont';
+    c.fillText(text, cw2, ch2-50);
+}
 
-function clip(x, min, max) { return Math.max(min, Math.min(max-1,x)); }
+function h2(text, align, fillStyle) {
+    c.textAlign = align || 'center';
+    c.fillStyle = fillStyle || 'white';
+    c.font = '50px pixelfont';
+    c.fillText(text, cw2, ch2-25);
+}
+
+function h3(text, align, fillStyle) {
+    c.textAlign = align || 'center';
+    c.fillStyle = fillStyle || 'white';
+    c.font = '30px pixelfont';
+    var lines = text.split('\n');
+    for (var i=0; i<lines.length; i++) {
+        c.fillText(lines[i], cw2, ch2 + 120 + i*40);
+    }
+}
+
+function footnote(text, align, fillStyle) {
+    c.textAlign = align || 'center';
+    c.fillStyle = fillStyle || 'white';
+    c.font = '10px pixelfont';
+    c.fillText(text, cw2, ch2*2 - 20);
+}
+
+function drawOverlay() {
+    fillRect(c, 0, 0, canvas.width, canvas.height, rgba(0, 0, 0, 0.5));
+}
+
+function getRandomInt(n) {
+    return Math.floor(Math.random() * n);
+}
+
+function clip(x, min, max) {
+    return Math.max(min, Math.min(max-1,x));
+}
 
 function dist(x1, y1, x2, y2) {
     var dx = x1 - x2;
