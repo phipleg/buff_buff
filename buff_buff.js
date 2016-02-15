@@ -178,7 +178,7 @@ function run() {
         _.each(universe, function(el) { el.draw(); });
         transition();
         _.each(universe, function(el) { el.move(); });
-    }, 28);
+    }, 25);
 }
 
 function Player(name, color, score){
