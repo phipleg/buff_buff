@@ -282,7 +282,7 @@ function Player(name, color, score){
                 }
             }
         } else {
-            if (this.distance > this.last_track_distance + 4 * this.size) {
+            if (this.distance > this.last_track_distance + Math.max(12, 4 * this.size)) {
                 this.has_hole = false;
                 this.last_track_distance = this.distance;
             }
