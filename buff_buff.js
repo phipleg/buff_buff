@@ -844,7 +844,7 @@ function PowerUps() {
 
 function Background() {
     this.draw = function(){
-        fillRect(c, 0, 0, canvas.width, canvas.height, 'black');
+        fillRect(c, 0, 0, canvas.width, canvas.height, 'grey');
     };
     this.move = function(){};
     this.terminate = function(){};
