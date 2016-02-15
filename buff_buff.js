@@ -824,7 +824,7 @@ function PowerUps() {
         if (state != 'playing') {
             return;
         }
-        if (this.available.length < 10) {
+        if (Math.random() < 0.01 && this.available.length < 10) {
             this.add();
         }
         _.each(this.available, function(p) { p.move(); });
