@@ -985,6 +985,7 @@ function GameConfig(){
         }
         c.textAlign = "center";
         c.fillStyle = "white";
+        c.fillText('select the player by pressing 1-8', cw2, ch2+220)
         c.fillText(this.valid ? "press space to play" : 'configure at least 2 players!', cw2, ch2+250)
     };
     this.move = function(){}
